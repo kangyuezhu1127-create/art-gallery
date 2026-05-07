@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
-import DepthWorker from '../workers/depth.worker.js?worker';
-import { getImageDimensions, depthInfoToDataURL, dataURLtoBlob } from '../utils/depthUtils';
+import { getImageDimensions, dataURLtoBlob } from '../utils/depthUtils';
 import { insertArtwork, uploadFile } from '../lib/artworkService';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 function resizeImageDataURL(dataURL, maxPx = 512) {
   return new Promise((resolve) => {
@@ -19,6 +19,21 @@ function resizeImageDataURL(dataURL, maxPx = 512) {
     };
     img.src = dataURL;
   });
+}
+
+// Fire-and-forget: calls Edge Function in background, updates local state when done
+async function startDepthGeneration(artworkId, imageDataURL, onUpdate) {
+  try {
+    onUpdate(artworkId, { depthStatus: '连接 AI 服务...' }, false);
+    const { data, error } = await supabase.functions.invoke('generate-depth', {
+      body: { artworkId, imageDataURL },
+    });
+    if (error) throw error;
+    // DB already updated by edge function — just sync local React state
+    onUpdate(artworkId, { depthMapURL: data.depthMapUrl, depthStatus: '完成' }, false);
+  } catch (err) {
+    onUpdate(artworkId, { depthStatus: `生成失败：${err.message}` }, false);
+  }
 }
 
 export default function UploadModal({ onClose, onAdd, onUpdate }) {
@@ -60,62 +75,20 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
       const aspectRatio = width / height;
       const id = crypto.randomUUID();
 
-      // Upload original image to Supabase Storage
-      const imageBlob = dataURLtoBlob(previewURL);
+      // Upload original to Supabase Storage
       const ext = file.type === 'image/png' ? 'png' : 'jpg';
-      const originalURL = await uploadFile(`${id}/original.${ext}`, imageBlob, file.type);
+      const originalURL = await uploadFile(`${id}/original.${ext}`, dataURLtoBlob(previewURL), file.type);
 
       setUploadStatus('保存到数据库...');
-
       const uploaderName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || '';
-
-      // Insert artwork record
       const artwork = await insertArtwork({ id, title, artist, year, description, originalURL, aspectRatio, userId: user.id, uploaderName });
+
       onAdd(artwork);
       onClose();
 
-      // Resize for AI inference
+      // Kick off depth generation in background (no Web Worker needed)
       const resizedURL = await resizeImageDataURL(previewURL, 512);
-
-      // Start depth estimation in worker
-      const worker = new DepthWorker();
-
-      const timeout = setTimeout(() => {
-        onUpdate(id, { depthStatus: '超时，请重试' }, true);
-        worker.terminate();
-      }, 4 * 60 * 1000);
-
-      worker.addEventListener('message', async (ev) => {
-        const { type, message, depthInfo } = ev.data;
-
-        if (type === 'progress') {
-          onUpdate(id, { depthStatus: message }, false);
-        } else if (type === 'result') {
-          clearTimeout(timeout);
-          try {
-            // Upload depth map to Supabase Storage
-            const depthDataURL = depthInfoToDataURL(depthInfo);
-            const depthBlob = dataURLtoBlob(depthDataURL);
-            const depthMapURL = await uploadFile(`${id}/depth.png`, depthBlob, 'image/png');
-            onUpdate(id, { depthMapURL, depthStatus: '完成' }, true);
-          } catch (err) {
-            onUpdate(id, { depthStatus: `上传失败：${err.message}` }, true);
-          }
-          worker.terminate();
-        } else if (type === 'error') {
-          clearTimeout(timeout);
-          onUpdate(id, { depthStatus: `生成失败：${message}` }, true);
-          worker.terminate();
-        }
-      });
-
-      worker.addEventListener('error', (err) => {
-        clearTimeout(timeout);
-        onUpdate(id, { depthStatus: `Worker 错误：${err.message}` }, true);
-        worker.terminate();
-      });
-
-      worker.postMessage({ imageDataURL: resizedURL });
+      startDepthGeneration(id, resizedURL, onUpdate);
 
     } catch (err) {
       setUploadStatus(`错误：${err.message}`);
@@ -129,12 +102,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">上传作品</h2>
           {!isProcessing && (
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"
-            >
-              ✕
-            </button>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">✕</button>
           )}
         </div>
 
@@ -157,13 +125,8 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
                 <p className="text-xs">支持 JPG、PNG、WebP</p>
               </div>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleFile(e.target.files[0])}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => handleFile(e.target.files[0])} />
           </div>
 
           <div className="space-y-3">
@@ -187,18 +150,12 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
               <p className="text-sm text-gray-600">{uploadStatus}</p>
             </div>
           ) : (
-            <button
-              type="submit"
-              disabled={!file || !title}
-              className="w-full py-3 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
+            <button type="submit" disabled={!file || !title}
+              className="w-full py-3 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
               上传并生成 3D
             </button>
           )}
-
-          <p className="text-xs text-gray-400 text-center">
-            首次生成需下载约 50MB 模型，之后浏览器缓存，速度很快
-          </p>
+          <p className="text-xs text-gray-400 text-center">AI 在服务器端处理，通常 15-30 秒完成</p>
         </form>
       </div>
     </div>
