@@ -1,10 +1,11 @@
 import { useRef, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, useTexture, Environment } from '@react-three/drei';
+import { OrbitControls, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
   const [colorTex, depthTex] = useTexture([colorURL, depthURL]);
+  colorTex.colorSpace = THREE.SRGBColorSpace;
   const meshRef = useRef();
 
   useFrame((state) => {
@@ -22,6 +23,9 @@ function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
         map={colorTex}
         displacementMap={depthTex}
         displacementScale={displacementScale}
+        roughness={1}
+        metalness={0}
+        envMapIntensity={0}
         side={THREE.DoubleSide}
       />
     </mesh>
@@ -57,9 +61,8 @@ function Scene({ colorURL, depthURL, displacementScale, aspectRatio }) {
     <>
       <perspectiveCamera makeDefault fov={45} near={0.1} far={100} />
       <AutoCamera aspectRatio={aspectRatio} />
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 3, 3]} intensity={1.2} />
-      <directionalLight position={[-3, -1, 2]} intensity={0.4} color="#a0c4ff" />
+      <ambientLight intensity={1.0} />
+      <directionalLight position={[2, 3, 3]} intensity={0.3} />
       <Suspense fallback={null}>
         <ArtworkMesh
           colorURL={colorURL}
@@ -77,7 +80,6 @@ function Scene({ colorURL, depthURL, displacementScale, aspectRatio }) {
         dampingFactor={0.05}
         enableDamping
       />
-      <Environment preset="studio" />
     </>
   );
 }
@@ -86,7 +88,7 @@ export default function Artwork3DViewer({ colorURL, depthURL, displacementScale,
   return (
     <div className="absolute inset-0">
       <Canvas
-        gl={{ antialias: true }}
+        gl={{ antialias: true, toneMapping: THREE.NoToneMapping, outputColorSpace: THREE.SRGBColorSpace }}
         dpr={[1, 2]}
         camera={{ fov: 45, near: 0.1, far: 100, position: [0, 0, 5] }}
         style={{ width: '100%', height: '100%' }}

@@ -4,12 +4,14 @@ import Navbar from '../components/Navbar';
 import ArtworkCard from '../components/ArtworkCard';
 import UploadModal from '../components/UploadModal';
 import AuthModal from '../components/AuthModal';
+import EditModal from '../components/EditModal';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function GalleryPage({ artworks, loading, onAdd, onUpdate }) {
+export default function GalleryPage({ artworks, loading, onAdd, onUpdate, onSave, onDelete }) {
   const { user } = useAuth();
   const [showUpload, setShowUpload] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
 
   const handleUploadClick = () => {
     if (user) setShowUpload(true);
@@ -59,7 +61,12 @@ export default function GalleryPage({ artworks, loading, onAdd, onUpdate }) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {artworks.map((artwork) => (
-              <ArtworkCard key={artwork.id} artwork={artwork} />
+              <ArtworkCard
+                key={artwork.id}
+                artwork={artwork}
+                onEdit={setEditTarget}
+                onDelete={onDelete}
+              />
             ))}
           </div>
         )}
@@ -74,6 +81,13 @@ export default function GalleryPage({ artworks, loading, onAdd, onUpdate }) {
       )}
       {showAuth && (
         <AuthModal onClose={() => setShowAuth(false)} />
+      )}
+      {editTarget && (
+        <EditModal
+          artwork={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSave={(updated) => { onSave(updated); setEditTarget(null); }}
+        />
       )}
     </div>
   );

@@ -56,6 +56,26 @@ export async function updateArtworkDB(id, { depthMapURL, depthStatus }) {
   if (error) throw error;
 }
 
+export async function updateArtworkMeta(id, { title, artist, year, description }) {
+  const { data, error } = await supabase
+    .from('artworks')
+    .update({ title, artist, year, description })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return mapRow(data);
+}
+
+export async function deleteArtwork(id) {
+  const { data: files } = await supabase.storage.from('artworks').list(id);
+  if (files?.length) {
+    await supabase.storage.from('artworks').remove(files.map((f) => `${id}/${f.name}`));
+  }
+  const { error } = await supabase.from('artworks').delete().eq('id', id);
+  if (error) throw error;
+}
+
 // Upload a Blob to Supabase Storage and return its public URL
 export async function uploadFile(path, blob, contentType) {
   const { error } = await supabase.storage

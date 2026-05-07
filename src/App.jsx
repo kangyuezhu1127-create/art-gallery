@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import GalleryPage from './pages/GalleryPage';
 import ViewerPage from './pages/ViewerPage';
-import { fetchArtworks, updateArtworkDB } from './lib/artworkService';
+import { fetchArtworks, updateArtworkDB, deleteArtwork } from './lib/artworkService';
 
 export default function App() {
   const [artworks, setArtworks] = useState([]);
@@ -29,6 +29,15 @@ export default function App() {
     }
   };
 
+  const replaceArtwork = (updated) => {
+    setArtworks((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+  };
+
+  const removeArtwork = (id) => {
+    setArtworks((prev) => prev.filter((a) => a.id !== id));
+    deleteArtwork(id).catch(console.error);
+  };
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -41,6 +50,8 @@ export default function App() {
                 loading={loading}
                 onAdd={addArtwork}
                 onUpdate={updateArtwork}
+                onSave={replaceArtwork}
+                onDelete={removeArtwork}
               />
             }
           />
