@@ -19,13 +19,13 @@ function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
   return (
     <mesh ref={meshRef}>
       <planeGeometry args={[w, h, 256, 256]} />
+      {/* emissiveMap renders the texture without any lighting math — exact color match */}
       <meshStandardMaterial
-        map={colorTex}
+        color="#000000"
+        emissive="#ffffff"
+        emissiveMap={colorTex}
         displacementMap={depthTex}
         displacementScale={displacementScale}
-        roughness={1}
-        metalness={0}
-        envMapIntensity={0}
         side={THREE.DoubleSide}
       />
     </mesh>
@@ -61,8 +61,6 @@ function Scene({ colorURL, depthURL, displacementScale, aspectRatio }) {
     <>
       <perspectiveCamera makeDefault fov={45} near={0.1} far={100} />
       <AutoCamera aspectRatio={aspectRatio} />
-      <ambientLight intensity={1.0} />
-      <directionalLight position={[2, 3, 3]} intensity={0.3} />
       <Suspense fallback={null}>
         <ArtworkMesh
           colorURL={colorURL}
