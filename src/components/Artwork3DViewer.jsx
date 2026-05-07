@@ -19,11 +19,6 @@ function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
   return (
     <mesh ref={meshRef}>
       <planeGeometry args={[w, h, 256, 256]} />
-      {/*
-        emissiveMap = exact color match (bypasses lighting math)
-        map = alpha channel source for background-removed PNGs
-        transparent = true enables per-pixel alpha
-      */}
       <meshStandardMaterial
         color="#000000"
         emissive="#ffffff"
@@ -38,12 +33,21 @@ function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
   );
 }
 
-// Auto-fit camera so artwork fills ~80% of the viewport on first load
+/* Fires onReady after textures are loaded and first frame is rendered */
+function SceneReady({ onReady }) {
+  const fired = useRef(false);
+  useFrame(() => {
+    if (fired.current) return;
+    fired.current = true;
+    onReady?.();
+  });
+  return null;
+}
+
 function AutoCamera({ aspectRatio }) {
   const { camera, size } = useThree();
 
   useFrame(() => {
-    // Run once to position camera
     if (camera.userData.fitted) return;
     camera.userData.fitted = true;
 
@@ -51,7 +55,6 @@ function AutoCamera({ aspectRatio }) {
     const meshW = 3;
     const canvasAspect = size.width / size.height;
 
-    // Pick the dimension that constrains the view
     const fovRad = (camera.fov * Math.PI) / 180;
     const fitByHeight = (meshH / 2 / Math.tan(fovRad / 2)) / 0.8;
     const fitByWidth = (meshW / (2 * Math.tan(fovRad / 2) * canvasAspect)) / 0.8;
@@ -62,7 +65,7 @@ function AutoCamera({ aspectRatio }) {
   return null;
 }
 
-function Scene({ colorURL, depthURL, displacementScale, aspectRatio }) {
+function Scene({ colorURL, depthURL, displacementScale, aspectRatio, onReady }) {
   return (
     <>
       <perspectiveCamera makeDefault fov={45} near={0.1} far={100} />
@@ -74,6 +77,7 @@ function Scene({ colorURL, depthURL, displacementScale, aspectRatio }) {
           displacementScale={displacementScale}
           aspectRatio={aspectRatio}
         />
+        <SceneReady onReady={onReady} />
       </Suspense>
       <OrbitControls
         enablePan
@@ -88,7 +92,7 @@ function Scene({ colorURL, depthURL, displacementScale, aspectRatio }) {
   );
 }
 
-export default function Artwork3DViewer({ colorURL, depthURL, displacementScale, aspectRatio }) {
+export default function Artwork3DViewer({ colorURL, depthURL, displacementScale, aspectRatio, onReady }) {
   return (
     <div
       className="absolute inset-0"
@@ -105,6 +109,7 @@ export default function Artwork3DViewer({ colorURL, depthURL, displacementScale,
           depthURL={depthURL}
           displacementScale={displacementScale}
           aspectRatio={aspectRatio}
+          onReady={onReady}
         />
       </Canvas>
     </div>

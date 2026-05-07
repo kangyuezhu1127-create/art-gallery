@@ -1,39 +1,61 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Artwork3DViewer from '../components/Artwork3DViewer';
 
 export default function ViewerPage({ artworks, onUpdate }) {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const artwork = artworks.find((a) => a.id === id);
+  const { id }       = useParams();
+  const navigate     = useNavigate();
+  const location     = useLocation();
+  const artwork      = artworks.find((a) => a.id === id);
+  const has3D        = !!artwork?.depthMapURL;
 
-  const fromGallery = !!location.state?.fromGallery;
-  const [displacementScale, setDisplacementScale] = useState(fromGallery ? 0 : 0.25);
-  const [introOverlay,      setIntroOverlay]      = useState(fromGallery ? 1 : 0);
-  const animRef = useRef(null);
+  const fromGallery  = !!location.state?.fromGallery;
 
-  useEffect(() => {
-    if (!fromGallery) return;
-    // fade black overlay out
-    const t1 = setTimeout(() => setIntroOverlay(0), 50);
-    // after fade, animate displacement 0 → 0.25 with ease-out cubic
-    const t2 = setTimeout(() => {
+  // overlay starts opaque when coming from gallery, transparent otherwise
+  const [introOverlay,     setIntroOverlay]     = useState(fromGallery ? 1 : 0);
+  const [displacementScale,setDisplacementScale] = useState(fromGallery ? 0 : 0.25);
+  const animRef  = useRef(null);
+  const firedRef = useRef(false);
+
+  /* Called once the 3D scene has rendered its first frame */
+  const handleSceneReady = useCallback(() => {
+    if (!fromGallery || firedRef.current) return;
+    firedRef.current = true;
+
+    // Fade overlay out
+    setIntroOverlay(0);
+
+    // After fade (0.7 s), animate displacement 0 → 0.25 with cubic ease-out
+    const t = setTimeout(() => {
       let start = null;
       const animate = (ts) => {
         if (!start) start = ts;
         const progress = Math.min((ts - start) / 1200, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
+        const eased    = 1 - Math.pow(1 - progress, 3);
         setDisplacementScale(eased * 0.25);
         if (progress < 1) animRef.current = requestAnimationFrame(animate);
-        else animRef.current = null;
+        else              animRef.current = null;
       };
       animRef.current = requestAnimationFrame(animate);
-    }, 650);
+    }, 700);
+
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      clearTimeout(t);
+      if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
+    };
+  }, [fromGallery]);
+
+  /* Fallback: if no 3D viewer, fade overlay after a short delay */
+  useEffect(() => {
+    if (!fromGallery || has3D) return;
+    const t = setTimeout(() => { setIntroOverlay(0); }, 350);
+    return () => clearTimeout(t);
+  }, [fromGallery, has3D]);
+
+  /* Cleanup animation on unmount */
+  useEffect(() => {
+    return () => {
       if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
     };
   }, []);
@@ -54,7 +76,6 @@ export default function ViewerPage({ artworks, onUpdate }) {
     );
   }
 
-  const has3D = !!artwork.depthMapURL;
   const seoDescription = [artwork.artist, artwork.year, artwork.description].filter(Boolean).join(' · ');
 
   return (
@@ -93,6 +114,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
             depthURL={artwork.depthMapURL}
             displacementScale={displacementScale}
             aspectRatio={artwork.aspectRatio}
+            onReady={handleSceneReady}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-4">
@@ -102,17 +124,12 @@ export default function ViewerPage({ artworks, onUpdate }) {
           </div>
         )}
 
-        {/* Controls overlay */}
         {has3D && (
           <>
-            {/* Displacement slider */}
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-2xl px-6 py-4 text-white flex items-center gap-4 min-w-64">
               <span className="text-xs text-gray-400 whitespace-nowrap">景深强度</span>
               <input
-                type="range"
-                min="0"
-                max="0.8"
-                step="0.01"
+                type="range" min="0" max="0.8" step="0.01"
                 value={displacementScale}
                 onChange={(e) => {
                   if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
@@ -124,8 +141,6 @@ export default function ViewerPage({ artworks, onUpdate }) {
                 {Math.round(displacementScale * 100)}
               </span>
             </div>
-
-            {/* Hint */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur rounded-full px-4 py-1.5 text-xs text-gray-300 pointer-events-none">
               拖拽旋转 · 滚轮缩放 · 右键平移
             </div>
@@ -133,14 +148,13 @@ export default function ViewerPage({ artworks, onUpdate }) {
         )}
       </div>
 
-      {/* Bottom info */}
       {artwork.description && (
         <div className="px-6 py-4 text-gray-500 text-sm text-center border-t border-gray-800">
           {artwork.description}
         </div>
       )}
 
-      {/* intro transition overlay — fades out and reveals 3D depth */}
+      {/* Transition overlay — stays opaque until 3D scene is ready */}
       <div style={{
         position: 'absolute', inset: 0, background: '#000',
         opacity: introOverlay,

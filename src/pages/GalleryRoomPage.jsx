@@ -59,6 +59,38 @@ function ArtImage({ url, fw, fh }) {
   );
 }
 
+/* ─── Gold glow aura — two translucent planes pulsing out of sync per frame ─── */
+function GoldAura({ fw, fh, b, depth, zOffset }) {
+  const inner = useRef();
+  const outer = useRef();
+  const z = depth * 0.5 + 0.012; // just in front of the frame face
+
+  useFrame(({ clock }) => {
+    // desync each frame by its world-Z so they breathe independently
+    const t     = clock.elapsedTime * 0.55 + zOffset * 0.18;
+    const pulse = Math.sin(t) * 0.5 + 0.5; // 0..1
+    if (inner.current) inner.current.material.opacity = 0.055 + pulse * 0.038;
+    if (outer.current) outer.current.material.opacity = 0.020 + pulse * 0.014;
+  });
+
+  const w = fw + b;
+  const h = fh + b;
+  return (
+    <group>
+      {/* inner halo — 0.65 units beyond frame edge on each side */}
+      <mesh ref={inner} position={[0, 0, z]}>
+        <planeGeometry args={[w + 0.65, h + 0.65]} />
+        <meshBasicMaterial color="#c8a455" transparent depthWrite={false} />
+      </mesh>
+      {/* outer soft halo */}
+      <mesh ref={outer} position={[0, 0, z - 0.006]}>
+        <planeGeometry args={[w + 1.6, h + 1.6]} />
+        <meshBasicMaterial color="#c8a455" transparent depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
 /* ─── Artistic frame ─── */
 function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
   const [hov, setHov] = useState(false);
@@ -67,10 +99,11 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
     return () => { document.body.style.cursor = 'auto'; };
   }, [hov]);
 
-  const s   = STYLES[styleIdx % 4];
-  const fw  = FW * s.sizeMult;
-  const fh  = Math.min(fw / (artwork.aspectRatio ?? 1.35), FH_MAX * s.sizeMult);
-  const b   = s.border;
+  const s      = STYLES[styleIdx % 4];
+  const fw     = FW * s.sizeMult;
+  const fh     = Math.min(fw / (artwork.aspectRatio ?? 1.35), FH_MAX * s.sizeMult);
+  const b      = s.border;
+  const zOffset = position[2]; // world-Z for glow desync
 
   return (
     <group
@@ -80,13 +113,18 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
       onPointerOver={() => setHov(true)}
       onPointerOut={() => setHov(false)}
     >
-      {/* outer frame body */}
+      {/* always-on gold glow aura */}
+      <GoldAura fw={fw} fh={fh} b={b} depth={s.depth} zOffset={zOffset} />
+
+      {/* outer frame body — emissive so it glows from within */}
       <mesh>
         <boxGeometry args={[fw + b, fh + b, s.depth]} />
         <meshStandardMaterial
           color={hov ? s.hoverColor : s.color}
           roughness={s.roughness}
           metalness={s.metalness}
+          emissive="#8b6020"
+          emissiveIntensity={hov ? 0.45 : 0.18}
         />
       </mesh>
 
@@ -94,7 +132,10 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
       {s.goldBead && (
         <mesh position={[0, 0, s.depth * 0.42]}>
           <boxGeometry args={[fw + b * 0.55, fh + b * 0.55, 0.013]} />
-          <meshStandardMaterial color={s.beadColor} metalness={0.88} roughness={0.22} />
+          <meshStandardMaterial
+            color={s.beadColor} metalness={0.88} roughness={0.22}
+            emissive="#c09030" emissiveIntensity={0.25}
+          />
         </mesh>
       )}
 
@@ -124,11 +165,11 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
         <meshStandardMaterial color="#ffffff" roughness={0.12} metalness={0.4} opacity={0.22} transparent />
       </mesh>
 
-      {/* hover glow outline */}
+      {/* hover: stronger gold glow outline */}
       {hov && (
-        <mesh position={[0, 0, -0.008]}>
-          <boxGeometry args={[fw + b + 0.06, fh + b + 0.06, 0.008]} />
-          <meshStandardMaterial color="#c9a84c" opacity={0.22} transparent />
+        <mesh position={[0, 0, s.depth * 0.5 + 0.02]}>
+          <planeGeometry args={[fw + b + 0.9, fh + b + 0.9]} />
+          <meshBasicMaterial color="#d4a830" opacity={0.18} transparent depthWrite={false} />
         </mesh>
       )}
     </group>
