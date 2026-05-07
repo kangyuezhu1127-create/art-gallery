@@ -4,6 +4,7 @@ import { useTexture, Text } from '@react-three/drei';
 import { useNavigate, useLocation } from 'react-router-dom';
 import * as THREE from 'three';
 import { useAuth } from '../contexts/AuthContext';
+import { useGalleryTransition } from '../contexts/TransitionContext';
 import UploadModal from '../components/UploadModal';
 import AuthModal from '../components/AuthModal';
 import EditModal from '../components/EditModal';
@@ -297,13 +298,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   const location  = useLocation();
   const { user }  = useAuth();
 
-  const [targetZ,          setTargetZ]          = useState(3.5);
-  const [targetYaw,        setTargetYaw]        = useState(0);
-  const [showUpload,       setShowUpload]       = useState(false);
-  const [showAuth,         setShowAuth]         = useState(false);
-  const [editTarget,       setEditTarget]       = useState(null);
-  const [transitioning,    setTransitioning]    = useState(false);
-  const [transitionOverlay,setTransitionOverlay]= useState(0);
+  const { startTransition } = useGalleryTransition();
+
+  const [targetZ,    setTargetZ]    = useState(3.5);
+  const [targetYaw,  setTargetYaw]  = useState(0);
+  const [zooming,    setZooming]    = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [showAuth,   setShowAuth]   = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
   const transitionRef = useRef(false);
 
   // track if user arrived from SelectionPage "UPLOAD" card
@@ -321,17 +323,17 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   const roomLen   = maxSlots * GAP + GAP * 2;
   const minZ      = -(roomLen - GAP);
 
-  /* ─── cinematic transition into artwork ─── */
-  const handleFrameClick = (artworkId, frameZ, wallSide) => {
+  /* ─── cinematic transition: camera zoom + persistent artwork overlay ─── */
+  const handleFrameClick = (artwork, frameZ, wallSide) => {
     if (transitionRef.current) return;
     transitionRef.current = true;
-    setTransitioning(true);
-    // camera zooms toward the selected frame
+    setZooming(true);
     setTargetZ(frameZ);
-    setTargetYaw(wallSide === 'left' ? Math.PI * 0.42 : -Math.PI * 0.42);
-    // begin fade to black (CSS transition handles the ease)
-    requestAnimationFrame(() => setTransitionOverlay(1));
-    setTimeout(() => navigate(`/artwork/${artworkId}`, { state: { fromGallery: true } }), 1000);
+    setTargetYaw(wallSide === 'left' ? Math.PI * 0.38 : -Math.PI * 0.38);
+    startTransition(
+      artwork.originalURL,
+      () => navigate(`/artwork/${artwork.id}`, { state: { fromGallery: true } }),
+    );
   };
 
   // ── input handlers ──
@@ -414,14 +416,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         style={{ width: '100%', height: '100%' }}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 2.0 }}
       >
-        <CameraRig targetZ={targetZ} targetYaw={targetYaw} targetFOV={transitioning ? 38 : 68} />
+        <CameraRig targetZ={targetZ} targetYaw={targetYaw} targetFOV={zooming ? 36 : 68} />
         <CeilingLights length={roomLen} />
         <RoomShell length={roomLen} />
 
         {leftWall.map((art, i) => {
           const si = (i * 2) % 4;
           const z  = -(i * GAP + GAP);
-          return <Frame key={art.id} artwork={art} position={[-HW + 0.1, EYE + 0.4, z]} rotY={Math.PI / 2} styleIdx={si} onSelect={() => handleFrameClick(art.id, z, 'left')} />;
+          return <Frame key={art.id} artwork={art} position={[-HW + 0.1, EYE + 0.4, z]} rotY={Math.PI / 2} styleIdx={si} onSelect={() => handleFrameClick(art, z, 'left')} />;
         })}
         {leftWall.map((art, i) => (
           <FrameLabel key={`ll-${art.id}`} artwork={art} position={[-HW + 0.1, EYE + 0.4, -(i * GAP + GAP)]} rotY={Math.PI / 2} styleIdx={(i * 2) % 4} />
@@ -430,21 +432,12 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         {rightWall.map((art, i) => {
           const si = (i * 2 + 1) % 4;
           const z  = -(i * GAP + GAP * 1.5);
-          return <Frame key={art.id} artwork={art} position={[HW - 0.1, EYE + 0.4, z]} rotY={-Math.PI / 2} styleIdx={si} onSelect={() => handleFrameClick(art.id, z, 'right')} />;
+          return <Frame key={art.id} artwork={art} position={[HW - 0.1, EYE + 0.4, z]} rotY={-Math.PI / 2} styleIdx={si} onSelect={() => handleFrameClick(art, z, 'right')} />;
         })}
         {rightWall.map((art, i) => (
           <FrameLabel key={`rl-${art.id}`} artwork={art} position={[HW - 0.1, EYE + 0.4, -(i * GAP + GAP * 1.5)]} rotY={-Math.PI / 2} styleIdx={(i * 2 + 1) % 4} />
         ))}
       </Canvas>
-
-      {/* cinematic fade-to-black overlay */}
-      <div style={{
-        position: 'absolute', inset: 0, background: '#000',
-        opacity: transitionOverlay,
-        transition: 'opacity 0.9s ease-in',
-        pointerEvents: transitioning ? 'all' : 'none',
-        zIndex: 200,
-      }} />
 
       {/* top bar */}
       <div style={{
