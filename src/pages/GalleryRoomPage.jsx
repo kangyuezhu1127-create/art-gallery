@@ -9,15 +9,15 @@ import AuthModal from '../components/AuthModal';
 import EditModal from '../components/EditModal';
 
 /* ─── Room constants ─── */
-const HW = 6.5;        // half-width of corridor
-const RH = 5.0;        // room height
-const EYE = 0.6;       // camera eye height offset from center
-const GAP = 6.5;       // spacing between frames on same wall
-const FRAME_W = 3.2;   // max frame width
-const WALL_CLR = '#f8f4ee';
-const FLOOR_CLR = '#c8a96e';
-const FRAME_CLR = '#2a1a08';
-const FRAME_HOV = '#50321a';
+const HW = 8.0;        // half-width of corridor
+const RH = 9.0;        // room height
+const EYE = 1.2;       // camera eye height offset from center
+const GAP = 11.0;      // spacing between frames on same wall
+const FRAME_W = 6.8;   // frame width (≈ 2× previous)
+const WALL_CLR = '#ffffff';
+const FLOOR_CLR = '#ffffff';
+const FRAME_CLR = '#1a1008';
+const FRAME_HOV = '#3d2510';
 
 /* ─── Texture + artwork plane ─── */
 function ArtImage({ url, fw, fh }) {
@@ -41,8 +41,8 @@ function Frame({ artwork, position, rotY, onSelect }) {
 
   const aspect = artwork.aspectRatio ?? 1.35;
   const fw = FRAME_W;
-  const fh = Math.min(fw / aspect, 2.6);
-  const border = 0.26;
+  const fh = Math.min(fw / aspect, RH - 2.5);
+  const border = 0.45;
 
   return (
     <group
@@ -60,14 +60,14 @@ function Frame({ artwork, position, rotY, onSelect }) {
       {/* cream mat */}
       <mesh position={[0, 0, 0.042]}>
         <boxGeometry args={[fw + 0.05, fh + 0.05, 0.016]} />
-        <meshStandardMaterial color="#f4efe6" roughness={1} />
+        <meshStandardMaterial color="#ffffff" roughness={1} />
       </mesh>
       {/* artwork image */}
       <Suspense
         fallback={
           <mesh position={[0, 0, 0.062]}>
             <planeGeometry args={[fw, fh]} />
-            <meshStandardMaterial color="#ddd5c5" />
+            <meshStandardMaterial color="#eeeeee" />
           </mesh>
         }
       >
@@ -86,8 +86,8 @@ function Frame({ artwork, position, rotY, onSelect }) {
 /* ─── Title + artist label below each frame ─── */
 function FrameLabel({ artwork, position, rotY }) {
   const aspect = artwork.aspectRatio ?? 1.35;
-  const fh = Math.min(FRAME_W / aspect, 2.6);
-  const labelY = position[1] - fh / 2 - 0.32;
+  const fh = Math.min(FRAME_W / aspect, RH - 2.5);
+  const labelY = position[1] - fh / 2 - 0.45;
 
   return (
     <group position={[position[0], labelY, position[2]]} rotation={[0, rotY, 0]}>
@@ -128,25 +128,15 @@ function RoomShell({ length }) {
         <planeGeometry args={[HW * 2, RH]} />
         <meshStandardMaterial color={WALL_CLR} roughness={0.92} />
       </mesh>
-      {/* floor – polished light oak */}
+      {/* floor – pure white matte */}
       <mesh position={[0, -RH / 2, mid]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[HW * 2, length]} />
-        <meshStandardMaterial color={FLOOR_CLR} roughness={0.35} metalness={0.04} />
+        <meshStandardMaterial color="#ffffff" roughness={0.85} metalness={0} />
       </mesh>
-      {/* ceiling – bright white */}
+      {/* ceiling – pure white */}
       <mesh position={[0, RH / 2, mid]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[HW * 2, length]} />
         <meshStandardMaterial color="#ffffff" roughness={1} />
-      </mesh>
-      {/* baseboard left */}
-      <mesh position={[-HW + 0.03, -RH / 2 + 0.1, mid]}>
-        <boxGeometry args={[0.06, 0.2, length]} />
-        <meshStandardMaterial color="#ccc3b2" roughness={0.8} />
-      </mesh>
-      {/* baseboard right */}
-      <mesh position={[HW - 0.03, -RH / 2 + 0.1, mid]}>
-        <boxGeometry args={[0.06, 0.2, length]} />
-        <meshStandardMaterial color="#ccc3b2" roughness={0.8} />
       </mesh>
     </>
   );
@@ -154,19 +144,19 @@ function RoomShell({ length }) {
 
 /* ─── Ceiling lights (evenly spaced) ─── */
 function CeilingLights({ length }) {
-  const count = Math.ceil(length / 4);
+  const count = Math.ceil(length / 5);
   return (
     <>
-      <ambientLight intensity={1.6} color="#fff9f2" />
-      <directionalLight position={[0, 8, -5]} intensity={0.6} color="#fffaf5" />
+      <ambientLight intensity={3.5} color="#ffffff" />
+      <directionalLight position={[0, 12, 0]} intensity={1.2} color="#ffffff" />
       {Array.from({ length: count }, (_, i) => (
         <pointLight
           key={i}
-          position={[0, RH / 2 - 0.15, -(i * 4 + 1)]}
-          intensity={22}
-          distance={8}
+          position={[0, RH / 2 - 0.2, -(i * 5 + 2)]}
+          intensity={40}
+          distance={14}
           decay={2}
-          color="#fffaf2"
+          color="#ffffff"
         />
       ))}
     </>
@@ -243,14 +233,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
 
   return (
     <div
-      style={{ width: '100vw', height: '100vh', background: '#f0ebe3', position: 'relative', overflow: 'hidden' }}
+      style={{ width: '100vw', height: '100vh', background: '#ffffff', position: 'relative', overflow: 'hidden' }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
     >
       <Canvas
         camera={{ fov: 68, near: 0.05, far: 300 }}
         style={{ width: '100%', height: '100%' }}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.5 }}
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 2.2 }}
       >
         <CameraRig targetZ={targetZ} />
         <CeilingLights length={roomLength} />
@@ -309,7 +299,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         position: 'absolute', top: 0, left: 0, right: 0,
         padding: '1.25rem 2rem',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'linear-gradient(to bottom, rgba(240,235,227,0.85) 0%, transparent 100%)',
+        background: 'linear-gradient(to bottom, rgba(255,255,255,0.92) 0%, transparent 100%)',
         pointerEvents: 'none',
       }}>
         <button
