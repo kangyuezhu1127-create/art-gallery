@@ -19,11 +19,17 @@ function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
   return (
     <mesh ref={meshRef}>
       <planeGeometry args={[w, h, 256, 256]} />
-      {/* emissiveMap renders the texture without any lighting math — exact color match */}
+      {/*
+        emissiveMap = exact color match (bypasses lighting math)
+        map = alpha channel source for background-removed PNGs
+        transparent = true enables per-pixel alpha
+      */}
       <meshStandardMaterial
         color="#000000"
         emissive="#ffffff"
         emissiveMap={colorTex}
+        map={colorTex}
+        transparent={true}
         displacementMap={depthTex}
         displacementScale={displacementScale}
         side={THREE.DoubleSide}
@@ -84,9 +90,12 @@ function Scene({ colorURL, depthURL, displacementScale, aspectRatio }) {
 
 export default function Artwork3DViewer({ colorURL, depthURL, displacementScale, aspectRatio }) {
   return (
-    <div className="absolute inset-0">
+    <div
+      className="absolute inset-0"
+      style={{ background: '#0d0d0d' }}
+    >
       <Canvas
-        gl={{ antialias: true, toneMapping: THREE.NoToneMapping, outputColorSpace: THREE.SRGBColorSpace }}
+        gl={{ antialias: true, alpha: true, toneMapping: THREE.NoToneMapping, outputColorSpace: THREE.SRGBColorSpace }}
         dpr={[1, 2]}
         camera={{ fov: 45, near: 0.1, far: 100, position: [0, 0, 5] }}
         style={{ width: '100%', height: '100%' }}

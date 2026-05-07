@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { removeBackground } from '@imgly/background-removal';
 import DepthWorker from '../workers/depth.worker.js?worker';
 import { getImageDimensions, depthInfoToDataURL, dataURLtoBlob } from '../utils/depthUtils';
 import { insertArtwork, uploadFile } from '../lib/artworkService';
@@ -21,8 +22,6 @@ function resizeImageDataURL(dataURL, maxPx = 512) {
   });
 }
 
-// Runs depth estimation in a Web Worker (free, browser-side)
-// then uploads the depth map to Supabase Storage
 function startDepthGeneration(artworkId, previewURL, onUpdate) {
   resizeImageDataURL(previewURL, 512).then((resizedURL) => {
     const worker = new DepthWorker();
@@ -69,6 +68,9 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
   const { user } = useAuth();
   const [file, setFile] = useState(null);
   const [previewURL, setPreviewURL] = useState(null);
+  const [originalPreviewURL, setOriginalPreviewURL] = useState(null);
+  const [bgRemoved, setBgRemoved] = useState(false);
+  const [bgRemoving, setBgRemoving] = useState(false);
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [year, setYear] = useState('');
@@ -77,13 +79,44 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const fileInputRef = useRef(null);
+  const processedBlobRef = useRef(null);
 
   const handleFile = (f) => {
     if (!f || !f.type.startsWith('image/')) return;
     setFile(f);
+    setBgRemoved(false);
+    processedBlobRef.current = null;
     const reader = new FileReader();
-    reader.onload = (e) => setPreviewURL(e.target.result);
+    reader.onload = (e) => {
+      setPreviewURL(e.target.result);
+      setOriginalPreviewURL(e.target.result);
+    };
     reader.readAsDataURL(f);
+  };
+
+  const handleRemoveBg = async () => {
+    if (!file || bgRemoving) return;
+    setBgRemoving(true);
+    try {
+      const blob = await removeBackground(file, {
+        publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/',
+        model: 'small',
+      });
+      processedBlobRef.current = blob;
+      const url = URL.createObjectURL(blob);
+      setPreviewURL(url);
+      setBgRemoved(true);
+    } catch (err) {
+      console.error('Background removal failed:', err);
+    } finally {
+      setBgRemoving(false);
+    }
+  };
+
+  const handleRestoreOriginal = () => {
+    setPreviewURL(originalPreviewURL);
+    setBgRemoved(false);
+    processedBlobRef.current = null;
   };
 
   const handleDrop = useCallback((e) => {
@@ -100,12 +133,17 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
     setUploadStatus('上传图片中...');
 
     try {
+      const uploadBlob = processedBlobRef.current
+        ? processedBlobRef.current
+        : dataURLtoBlob(previewURL);
+      const uploadMime = processedBlobRef.current ? 'image/png' : file.type;
+      const ext = uploadMime === 'image/png' ? 'png' : 'jpg';
+
       const { width, height } = await getImageDimensions(previewURL);
       const aspectRatio = width / height;
       const id = crypto.randomUUID();
 
-      const ext = file.type === 'image/png' ? 'png' : 'jpg';
-      const originalURL = await uploadFile(`${id}/original.${ext}`, dataURLtoBlob(previewURL), file.type);
+      const originalURL = await uploadFile(`${id}/original.${ext}`, uploadBlob, uploadMime);
 
       setUploadStatus('保存到数据库...');
       const uploaderName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || '';
@@ -114,7 +152,6 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
       onAdd(artwork);
       onClose();
 
-      // Start Worker in background — progress shown on artwork card
       startDepthGeneration(id, previewURL, onUpdate);
 
     } catch (err) {
@@ -134,6 +171,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Drop zone */}
           <div
             className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
               isDragging ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-400'
@@ -144,7 +182,22 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
             onClick={() => fileInputRef.current?.click()}
           >
             {previewURL ? (
-              <img src={previewURL} alt="preview" className="max-h-48 mx-auto rounded-lg object-contain" />
+              <div
+                className="relative max-h-48 mx-auto"
+                style={{ display: 'inline-block' }}
+              >
+                <img
+                  src={previewURL}
+                  alt="preview"
+                  className="max-h-48 rounded-lg object-contain"
+                  style={bgRemoved ? { background: 'repeating-conic-gradient(#e5e7eb 0% 25%, white 0% 50%) 0 0 / 12px 12px' } : {}}
+                />
+                {bgRemoved && (
+                  <span className="absolute top-1.5 right-1.5 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                    已抠图
+                  </span>
+                )}
+              </div>
             ) : (
               <div className="text-gray-400 space-y-2">
                 <div className="text-4xl">🖼️</div>
@@ -155,6 +208,49 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => handleFile(e.target.files[0])} />
           </div>
+
+          {/* Background removal controls */}
+          {file && !isProcessing && (
+            <div className="flex items-center gap-2">
+              {!bgRemoved ? (
+                <button
+                  type="button"
+                  onClick={handleRemoveBg}
+                  disabled={bgRemoving}
+                  className="flex items-center gap-2 text-sm px-4 py-2 border border-gray-200 rounded-lg hover:border-gray-900 hover:text-gray-900 text-gray-500 transition-colors disabled:opacity-50"
+                >
+                  {bgRemoving ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                      <span>抠图中（首次需下载模型）...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10" />
+                        <path d="M15 2.5c0 4.5-3 7-3 9.5" />
+                        <path d="M2.5 9h19" />
+                        <path d="M22 12l-4 4 4 4" />
+                      </svg>
+                      <span>AI 去除背景</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleRestoreOriginal}
+                  className="flex items-center gap-2 text-sm px-4 py-2 border border-gray-200 rounded-lg hover:border-gray-900 hover:text-gray-900 text-gray-500 transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  <span>恢复原图</span>
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="space-y-3">
             <input required value={title} onChange={(e) => setTitle(e.target.value)}
