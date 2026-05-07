@@ -12,6 +12,8 @@ function mapRow(row) {
     depthMapURL: row.depth_map_url,
     aspectRatio: row.aspect_ratio,
     depthStatus: row.depth_status,
+    uploaderName: row.uploader_name,
+    userId: row.user_id,
     createdAt: row.created_at,
   };
 }
@@ -25,7 +27,7 @@ export async function fetchArtworks() {
   return data.map(mapRow);
 }
 
-export async function insertArtwork({ id, title, artist, year, description, originalURL, aspectRatio }) {
+export async function insertArtwork({ id, title, artist, year, description, originalURL, aspectRatio, userId, uploaderName }) {
   const { data, error } = await supabase
     .from('artworks')
     .insert({
@@ -37,6 +39,8 @@ export async function insertArtwork({ id, title, artist, year, description, orig
       original_url: originalURL,
       aspect_ratio: aspectRatio,
       depth_status: 'processing',
+      user_id: userId,
+      uploader_name: uploaderName,
     })
     .select()
     .single();

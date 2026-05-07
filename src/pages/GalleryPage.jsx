@@ -1,14 +1,32 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import Navbar from '../components/Navbar';
 import ArtworkCard from '../components/ArtworkCard';
 import UploadModal from '../components/UploadModal';
+import AuthModal from '../components/AuthModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function GalleryPage({ artworks, loading, onAdd, onUpdate }) {
+  const { user } = useAuth();
   const [showUpload, setShowUpload] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+
+  const handleUploadClick = () => {
+    if (user) setShowUpload(true);
+    else setShowAuth(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#fafaf8]">
-      <Navbar onUpload={() => setShowUpload(true)} />
+      <Helmet>
+        <title>Depth Gallery | 3D 艺术展览</title>
+        <meta name="description" content="上传你的 2D 作品，AI 自动生成深度图，用 3D 视角立体欣赏每一幅画" />
+        <meta property="og:title" content="Depth Gallery" />
+        <meta property="og:description" content="AI 驱动的 3D 艺术展览平台" />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
+      <Navbar onUpload={handleUploadClick} onLogin={() => setShowAuth(true)} />
 
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-6 pt-16 pb-12 text-center">
@@ -19,10 +37,10 @@ export default function GalleryPage({ artworks, loading, onAdd, onUpdate }) {
           上传你的 2D 作品，AI 自动生成深度信息，让每一幅画都可以被立体观看
         </p>
         <button
-          onClick={() => setShowUpload(true)}
+          onClick={handleUploadClick}
           className="mt-8 px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-700 transition-colors"
         >
-          上传你的第一件作品
+          {user ? '上传作品' : '登录后上传'}
         </button>
       </div>
 
@@ -53,6 +71,9 @@ export default function GalleryPage({ artworks, loading, onAdd, onUpdate }) {
           onAdd={onAdd}
           onUpdate={onUpdate}
         />
+      )}
+      {showAuth && (
+        <AuthModal onClose={() => setShowAuth(false)} />
       )}
     </div>
   );

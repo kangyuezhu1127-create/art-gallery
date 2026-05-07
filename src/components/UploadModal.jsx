@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import DepthWorker from '../workers/depth.worker.js?worker';
 import { getImageDimensions, depthInfoToDataURL, dataURLtoBlob } from '../utils/depthUtils';
 import { insertArtwork, uploadFile } from '../lib/artworkService';
+import { useAuth } from '../contexts/AuthContext';
 
 function resizeImageDataURL(dataURL, maxPx = 512) {
   return new Promise((resolve) => {
@@ -21,6 +22,7 @@ function resizeImageDataURL(dataURL, maxPx = 512) {
 }
 
 export default function UploadModal({ onClose, onAdd, onUpdate }) {
+  const { user } = useAuth();
   const [file, setFile] = useState(null);
   const [previewURL, setPreviewURL] = useState(null);
   const [title, setTitle] = useState('');
@@ -65,8 +67,10 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
 
       setUploadStatus('保存到数据库...');
 
+      const uploaderName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || '';
+
       // Insert artwork record
-      const artwork = await insertArtwork({ id, title, artist, year, description, originalURL, aspectRatio });
+      const artwork = await insertArtwork({ id, title, artist, year, description, originalURL, aspectRatio, userId: user.id, uploaderName });
       onAdd(artwork);
       onClose();
 

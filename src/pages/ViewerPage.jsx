@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
 import Artwork3DViewer from '../components/Artwork3DViewer';
 
@@ -25,9 +26,18 @@ export default function ViewerPage({ artworks, onUpdate }) {
   }
 
   const has3D = !!artwork.depthMapURL;
+  const seoDescription = [artwork.artist, artwork.year, artwork.description].filter(Boolean).join(' · ');
 
   return (
     <div className="h-screen bg-[#0d0d0d] flex flex-col overflow-hidden">
+      <Helmet>
+        <title>{artwork.title} — Depth Gallery</title>
+        <meta name="description" content={seoDescription || `${artwork.title} 的 3D 立体展示`} />
+        <meta property="og:title" content={`${artwork.title} — Depth Gallery`} />
+        <meta property="og:description" content={seoDescription} />
+        <meta property="og:image" content={artwork.originalURL} />
+        <meta property="og:type" content="article" />
+      </Helmet>
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 text-white z-10">
         <button
