@@ -21,16 +21,37 @@ function resizeImageDataURL(dataURL, maxPx = 512) {
   });
 }
 
-// Fire-and-forget: calls Edge Function in background, updates local state when done
+// Start Replicate job, then poll DB every 4s until depth_map_url is set
 async function startDepthGeneration(artworkId, imageDataURL, onUpdate) {
   try {
     onUpdate(artworkId, { depthStatus: '连接 AI 服务...' }, false);
-    const { data, error } = await supabase.functions.invoke('generate-depth', {
+
+    const { error } = await supabase.functions.invoke('generate-depth', {
       body: { artworkId, imageDataURL },
     });
     if (error) throw error;
-    // DB already updated by edge function — just sync local React state
-    onUpdate(artworkId, { depthMapURL: data.depthMapUrl, depthStatus: '完成' }, false);
+
+    // Poll DB — Replicate posts result to depth-webhook which updates the DB
+    const deadline = Date.now() + 5 * 60 * 1000; // 5 min max
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 4000));
+
+      const { data } = await supabase
+        .from('artworks')
+        .select('depth_map_url, depth_status')
+        .eq('id', artworkId)
+        .single();
+
+      if (data?.depth_map_url) {
+        onUpdate(artworkId, { depthMapURL: data.depth_map_url, depthStatus: '完成' }, false);
+        return;
+      }
+      if (data?.depth_status) {
+        onUpdate(artworkId, { depthStatus: data.depth_status }, false);
+        if (data.depth_status.startsWith('生成失败')) return;
+      }
+    }
+    onUpdate(artworkId, { depthStatus: '超时，请重试' }, false);
   } catch (err) {
     onUpdate(artworkId, { depthStatus: `生成失败：${err.message}` }, false);
   }
