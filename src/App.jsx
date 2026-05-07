@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage';
 import SelectionPage from './pages/SelectionPage';
 import GalleryRoomPage from './pages/GalleryRoomPage';
 import ViewerPage from './pages/ViewerPage';
+import AccountPage from './pages/AccountPage';
 import { fetchArtworks, updateArtworkDB, deleteArtwork } from './lib/artworkService';
 
 export default function App() {
@@ -62,6 +63,16 @@ export default function App() {
           <Route
             path="/artwork/:id"
             element={<ViewerPage artworks={artworks} onUpdate={updateArtwork} />}
+          />
+          <Route
+            path="/account"
+            element={
+              <AccountPage
+                artworks={artworks}
+                onSave={replaceArtwork}
+                onDelete={removeArtwork}
+              />
+            }
           />
         </Routes>
       </BrowserRouter>

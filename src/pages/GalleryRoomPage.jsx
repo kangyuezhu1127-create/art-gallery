@@ -419,10 +419,28 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         }}>
           ← DEPTH GALLERY
         </button>
-        <button onClick={handleUpload} style={{ pointerEvents: 'all' }} className="upload-btn">
-          <span className="upload-icon">+</span>
-          {user ? 'UPLOAD WORK' : 'SIGN IN TO UPLOAD'}
-        </button>
+        <div style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
+          {user && (
+            <button
+              onClick={() => navigate('/account')}
+              title="My Account"
+              style={{
+                width: '2rem', height: '2rem', borderRadius: '50%', flexShrink: 0,
+                background: 'linear-gradient(135deg, #c8a455 0%, #7c5e1a 100%)',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: '0.72rem', fontWeight: 500,
+                boxShadow: '0 2px 8px rgba(200,164,85,0.4)',
+              }}
+            >
+              {(user.user_metadata?.display_name || user.email || 'U')[0].toUpperCase()}
+            </button>
+          )}
+          <button onClick={handleUpload} className="upload-btn">
+            <span className="upload-icon">+</span>
+            {user ? 'UPLOAD WORK' : 'SIGN IN TO UPLOAD'}
+          </button>
+        </div>
       </div>
 
       {/* progress bar */}
