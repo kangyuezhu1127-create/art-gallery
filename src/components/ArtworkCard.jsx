@@ -32,7 +32,7 @@ export default function ArtworkCard({ artwork, onEdit, onDelete }) {
     artwork.depthStatus?.startsWith('生成失败') ||
     artwork.depthStatus?.startsWith('超时') ||
     artwork.depthStatus?.startsWith('Worker');
-  const isOwner = user && (user.id === artwork.userId || !artwork.userId);
+  const isOwner = user && user.id === artwork.userId;
 
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100">
