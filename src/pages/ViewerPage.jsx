@@ -15,7 +15,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
         <div className="text-center">
           <p className="text-lg mb-4">找不到作品</p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/gallery')}
             className="px-4 py-2 bg-white text-gray-900 rounded-lg"
           >
             返回画廊
@@ -41,7 +41,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 text-white z-10">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/gallery')}
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
         >
           ← 返回画廊
