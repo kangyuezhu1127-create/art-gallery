@@ -1,13 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Artwork3DViewer from '../components/Artwork3DViewer';
 
 export default function ViewerPage({ artworks, onUpdate }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const artwork = artworks.find((a) => a.id === id);
-  const [displacementScale, setDisplacementScale] = useState(0.25);
+
+  const fromGallery = !!location.state?.fromGallery;
+  const [displacementScale, setDisplacementScale] = useState(fromGallery ? 0 : 0.25);
+  const [introOverlay,      setIntroOverlay]      = useState(fromGallery ? 1 : 0);
+  const animRef = useRef(null);
+
+  useEffect(() => {
+    if (!fromGallery) return;
+    // fade black overlay out
+    const t1 = setTimeout(() => setIntroOverlay(0), 50);
+    // after fade, animate displacement 0 → 0.25 with ease-out cubic
+    const t2 = setTimeout(() => {
+      let start = null;
+      const animate = (ts) => {
+        if (!start) start = ts;
+        const progress = Math.min((ts - start) / 1200, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setDisplacementScale(eased * 0.25);
+        if (progress < 1) animRef.current = requestAnimationFrame(animate);
+        else animRef.current = null;
+      };
+      animRef.current = requestAnimationFrame(animate);
+    }, 650);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
+    };
+  }, []);
 
   if (!artwork) {
     return (
@@ -29,7 +58,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
   const seoDescription = [artwork.artist, artwork.year, artwork.description].filter(Boolean).join(' · ');
 
   return (
-    <div className="h-screen bg-[#0d0d0d] flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#0d0d0d] flex flex-col overflow-hidden" style={{ position: 'relative' }}>
       <Helmet>
         <title>{artwork.title} — Depth Gallery</title>
         <meta name="description" content={seoDescription || `${artwork.title} 的 3D 立体展示`} />
@@ -38,6 +67,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
         <meta property="og:image" content={artwork.originalURL} />
         <meta property="og:type" content="article" />
       </Helmet>
+
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 text-white z-10">
         <button
@@ -84,7 +114,10 @@ export default function ViewerPage({ artworks, onUpdate }) {
                 max="0.8"
                 step="0.01"
                 value={displacementScale}
-                onChange={(e) => setDisplacementScale(parseFloat(e.target.value))}
+                onChange={(e) => {
+                  if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
+                  setDisplacementScale(parseFloat(e.target.value));
+                }}
                 className="flex-1 accent-white"
               />
               <span className="text-xs text-gray-300 w-8 text-right">
@@ -106,6 +139,15 @@ export default function ViewerPage({ artworks, onUpdate }) {
           {artwork.description}
         </div>
       )}
+
+      {/* intro transition overlay — fades out and reveals 3D depth */}
+      <div style={{
+        position: 'absolute', inset: 0, background: '#000',
+        opacity: introOverlay,
+        transition: 'opacity 0.7s ease-out',
+        pointerEvents: introOverlay > 0.05 ? 'all' : 'none',
+        zIndex: 100,
+      }} />
     </div>
   );
 }

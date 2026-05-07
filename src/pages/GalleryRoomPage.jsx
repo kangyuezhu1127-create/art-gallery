@@ -16,35 +16,35 @@ const GAP    = 11.0;
 const FW     = 6.8;
 const FH_MAX = 6.5;
 
-/* ─── 4 distinct frame styles ─── */
+/* ─── 4 gold frame styles ─── */
 const STYLES = [
-  // 0 · ultra-thin black minimalist
+  // 0 · thin polished gold
   {
-    sizeMult: 1.0, border: 0.14, depth: 0.05,
-    color: '#060606', hoverColor: '#2a2a2a',
-    roughness: 0.3, metalness: 0.1,
-    mat: null, goldBead: false,
+    sizeMult: 1.0, border: 0.16, depth: 0.06,
+    color: '#c8a455', hoverColor: '#e4c060',
+    roughness: 0.12, metalness: 0.95,
+    mat: null, goldBead: false, beadColor: '#c9a84c',
   },
-  // 1 · dark walnut museum
+  // 1 · antique ornate gold with mat
   {
-    sizeMult: 0.88, border: 0.56, depth: 0.1,
-    color: '#2b1206', hoverColor: '#4a2410',
-    roughness: 0.85, metalness: 0.02,
-    mat: '#f4efe5', goldBead: false,
+    sizeMult: 0.88, border: 0.60, depth: 0.12,
+    color: '#8b6914', hoverColor: '#a07820',
+    roughness: 0.42, metalness: 0.82,
+    mat: '#f4efe5', goldBead: true, beadColor: '#c9a84c',
   },
-  // 2 · warm natural oak
+  // 2 · champagne gold medium
   {
-    sizeMult: 1.06, border: 0.38, depth: 0.08,
-    color: '#7a4f22', hoverColor: '#9c6e38',
-    roughness: 0.9, metalness: 0.01,
-    mat: '#fdfaf4', goldBead: false,
+    sizeMult: 1.06, border: 0.40, depth: 0.09,
+    color: '#c8a84c', hoverColor: '#d9bc5e',
+    roughness: 0.28, metalness: 0.88,
+    mat: '#fdfaf4', goldBead: false, beadColor: '#c9a84c',
   },
-  // 3 · dark ebony with gold inner bead
+  // 3 · deep burnished gold with ornate bead
   {
-    sizeMult: 0.95, border: 0.46, depth: 0.09,
-    color: '#0e0c08', hoverColor: '#2e2a20',
-    roughness: 0.4, metalness: 0.15,
-    mat: '#fffdf6', goldBead: true,
+    sizeMult: 0.95, border: 0.52, depth: 0.10,
+    color: '#7c5e1a', hoverColor: '#9a7828',
+    roughness: 0.25, metalness: 0.92,
+    mat: '#fffdf6', goldBead: true, beadColor: '#e8c84a',
   },
 ];
 
@@ -90,11 +90,11 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
         />
       </mesh>
 
-      {/* gold inner bead (style 3) */}
+      {/* gold inner bead */}
       {s.goldBead && (
         <mesh position={[0, 0, s.depth * 0.42]}>
           <boxGeometry args={[fw + b * 0.55, fh + b * 0.55, 0.013]} />
-          <meshStandardMaterial color="#c9a84c" metalness={0.88} roughness={0.22} />
+          <meshStandardMaterial color={s.beadColor} metalness={0.88} roughness={0.22} />
         </mesh>
       )}
 
@@ -128,7 +128,7 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
       {hov && (
         <mesh position={[0, 0, -0.008]}>
           <boxGeometry args={[fw + b + 0.06, fh + b + 0.06, 0.008]} />
-          <meshStandardMaterial color="#888" opacity={0.18} transparent />
+          <meshStandardMaterial color="#c9a84c" opacity={0.22} transparent />
         </mesh>
       )}
     </group>
@@ -167,7 +167,7 @@ function RoomShell({ length }) {
       <mesh position={[0, 0, -length]}><planeGeometry args={[HW * 2, RH]} /><meshStandardMaterial {...wallMat} /></mesh>
       <mesh position={[0, 0, 2.5]} rotation={[0, Math.PI, 0]}><planeGeometry args={[HW * 2, RH]} /><meshStandardMaterial {...wallMat} /></mesh>
 
-      {/* floor — noticeable gray so edge is clear */}
+      {/* floor */}
       <mesh position={[0, -RH / 2, mid]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[HW * 2, length]} />
         <meshStandardMaterial color="#cccccc" roughness={0.88} />
@@ -179,23 +179,19 @@ function RoomShell({ length }) {
         <meshStandardMaterial color="#ffffff" roughness={1} />
       </mesh>
 
-      {/* ── strong floor-wall shadow strips ── */}
-      {/* darkest core shadow, left */}
+      {/* floor-wall shadow strips */}
       <mesh position={[-HW + 0.022, -RH / 2 + 0.07, mid]}>
         <boxGeometry args={[0.044, 0.14, length]} />
         <meshStandardMaterial color="#8a8a8a" roughness={1} />
       </mesh>
-      {/* mid shadow, left */}
       <mesh position={[-HW + 0.06, -RH / 2 + 0.16, mid]}>
         <boxGeometry args={[0.08, 0.24, length]} />
         <meshStandardMaterial color="#aaaaaa" roughness={1} />
       </mesh>
-      {/* soft edge, left */}
       <mesh position={[-HW + 0.14, -RH / 2 + 0.3, mid]}>
         <boxGeometry args={[0.14, 0.4, length]} />
         <meshStandardMaterial color="#c0c0c0" roughness={1} />
       </mesh>
-      {/* darkest core shadow, right */}
       <mesh position={[HW - 0.022, -RH / 2 + 0.07, mid]}>
         <boxGeometry args={[0.044, 0.14, length]} />
         <meshStandardMaterial color="#8a8a8a" roughness={1} />
@@ -208,7 +204,6 @@ function RoomShell({ length }) {
         <boxGeometry args={[0.14, 0.4, length]} />
         <meshStandardMaterial color="#c0c0c0" roughness={1} />
       </mesh>
-      {/* back wall floor edge */}
       <mesh position={[0, -RH / 2 + 0.07, -length + 0.022]}>
         <boxGeometry args={[HW * 2, 0.14, 0.044]} />
         <meshStandardMaterial color="#8a8a8a" roughness={1} />
@@ -238,7 +233,7 @@ function CeilingLights({ length }) {
 }
 
 /* ─── Camera controller ─── */
-function CameraRig({ targetZ, targetYaw }) {
+function CameraRig({ targetZ, targetYaw, targetFOV }) {
   const { camera } = useThree();
   useEffect(() => {
     camera.rotation.order = 'YXZ';
@@ -249,6 +244,8 @@ function CameraRig({ targetZ, targetYaw }) {
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetZ,   0.055);
     camera.position.y = EYE;
     camera.rotation.y = THREE.MathUtils.lerp(camera.rotation.y, targetYaw, 0.07);
+    camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.06);
+    camera.updateProjectionMatrix();
   });
   return null;
 }
@@ -259,11 +256,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   const location  = useLocation();
   const { user }  = useAuth();
 
-  const [targetZ,    setTargetZ]    = useState(3.5);
-  const [targetYaw,  setTargetYaw]  = useState(0);
-  const [showUpload, setShowUpload] = useState(false);
-  const [showAuth,   setShowAuth]   = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
+  const [targetZ,          setTargetZ]          = useState(3.5);
+  const [targetYaw,        setTargetYaw]        = useState(0);
+  const [showUpload,       setShowUpload]       = useState(false);
+  const [showAuth,         setShowAuth]         = useState(false);
+  const [editTarget,       setEditTarget]       = useState(null);
+  const [transitioning,    setTransitioning]    = useState(false);
+  const [transitionOverlay,setTransitionOverlay]= useState(0);
+  const transitionRef = useRef(false);
 
   // track if user arrived from SelectionPage "UPLOAD" card
   const fromUploadCard = useRef(!!location.state?.openUpload);
@@ -280,14 +280,29 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   const roomLen   = maxSlots * GAP + GAP * 2;
   const minZ      = -(roomLen - GAP);
 
+  /* ─── cinematic transition into artwork ─── */
+  const handleFrameClick = (artworkId, frameZ, wallSide) => {
+    if (transitionRef.current) return;
+    transitionRef.current = true;
+    setTransitioning(true);
+    // camera zooms toward the selected frame
+    setTargetZ(frameZ);
+    setTargetYaw(wallSide === 'left' ? Math.PI * 0.42 : -Math.PI * 0.42);
+    // begin fade to black (CSS transition handles the ease)
+    requestAnimationFrame(() => setTransitionOverlay(1));
+    setTimeout(() => navigate(`/artwork/${artworkId}`, { state: { fromGallery: true } }), 1000);
+  };
+
   // ── input handlers ──
   useEffect(() => {
     const onWheel = (e) => {
+      if (transitionRef.current) return;
       e.preventDefault();
       setTargetZ(z   => Math.min(3.5, Math.max(minZ, z - e.deltaY * 0.016)));
       setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - e.deltaX * 0.004)));
     };
     const onKey = (e) => {
+      if (transitionRef.current) return;
       if (e.key === 'ArrowUp'    || e.key === 'w') setTargetZ(z   => Math.max(minZ, z - 3.5));
       if (e.key === 'ArrowDown'  || e.key === 's') setTargetZ(z   => Math.min(3.5,  z + 3.5));
       if (e.key === 'ArrowLeft'  || e.key === 'a') setTargetYaw(y => Math.min( Math.PI * 0.55, y + 0.25));
@@ -300,9 +315,9 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
 
   const dragging = useRef(false);
   const lastMX   = useRef(0);
-  const onMouseDown = (e) => { dragging.current = true;  lastMX.current = e.clientX; };
+  const onMouseDown = (e) => { if (transitionRef.current) return; dragging.current = true;  lastMX.current = e.clientX; };
   const onMouseMove = (e) => {
-    if (!dragging.current) return;
+    if (!dragging.current || transitionRef.current) return;
     const dx = e.clientX - lastMX.current;
     lastMX.current = e.clientX;
     setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - dx * 0.004)));
@@ -312,6 +327,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   const touchRef = useRef({ x: null, y: null });
   const onTouchStart = (e) => { touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
   const onTouchMove  = (e) => {
+    if (transitionRef.current) return;
     const dx = touchRef.current.x - e.touches[0].clientX;
     const dy = touchRef.current.y - e.touches[0].clientY;
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -319,7 +335,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
     setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - dx * 0.006)));
   };
 
-  // ── upload / auth close: return to /enter if came from selection card ──
+  // ── upload / auth close ──
   const handleUploadClose = () => {
     setShowUpload(false);
     if (fromUploadCard.current) {
@@ -335,7 +351,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
     }
   };
   const handleAddSuccess = (artwork) => {
-    fromUploadCard.current = false; // completed — stay in gallery
+    fromUploadCard.current = false;
     onAdd(artwork);
   };
 
@@ -357,14 +373,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         style={{ width: '100%', height: '100%' }}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 2.0 }}
       >
-        <CameraRig targetZ={targetZ} targetYaw={targetYaw} />
+        <CameraRig targetZ={targetZ} targetYaw={targetYaw} targetFOV={transitioning ? 38 : 68} />
         <CeilingLights length={roomLen} />
         <RoomShell length={roomLen} />
 
         {leftWall.map((art, i) => {
           const si = (i * 2) % 4;
           const z  = -(i * GAP + GAP);
-          return <Frame key={art.id} artwork={art} position={[-HW + 0.1, EYE + 0.4, z]} rotY={Math.PI / 2} styleIdx={si} onSelect={() => navigate(`/artwork/${art.id}`)} />;
+          return <Frame key={art.id} artwork={art} position={[-HW + 0.1, EYE + 0.4, z]} rotY={Math.PI / 2} styleIdx={si} onSelect={() => handleFrameClick(art.id, z, 'left')} />;
         })}
         {leftWall.map((art, i) => (
           <FrameLabel key={`ll-${art.id}`} artwork={art} position={[-HW + 0.1, EYE + 0.4, -(i * GAP + GAP)]} rotY={Math.PI / 2} styleIdx={(i * 2) % 4} />
@@ -373,12 +389,21 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         {rightWall.map((art, i) => {
           const si = (i * 2 + 1) % 4;
           const z  = -(i * GAP + GAP * 1.5);
-          return <Frame key={art.id} artwork={art} position={[HW - 0.1, EYE + 0.4, z]} rotY={-Math.PI / 2} styleIdx={si} onSelect={() => navigate(`/artwork/${art.id}`)} />;
+          return <Frame key={art.id} artwork={art} position={[HW - 0.1, EYE + 0.4, z]} rotY={-Math.PI / 2} styleIdx={si} onSelect={() => handleFrameClick(art.id, z, 'right')} />;
         })}
         {rightWall.map((art, i) => (
           <FrameLabel key={`rl-${art.id}`} artwork={art} position={[HW - 0.1, EYE + 0.4, -(i * GAP + GAP * 1.5)]} rotY={-Math.PI / 2} styleIdx={(i * 2 + 1) % 4} />
         ))}
       </Canvas>
+
+      {/* cinematic fade-to-black overlay */}
+      <div style={{
+        position: 'absolute', inset: 0, background: '#000',
+        opacity: transitionOverlay,
+        transition: 'opacity 0.9s ease-in',
+        pointerEvents: transitioning ? 'all' : 'none',
+        zIndex: 200,
+      }} />
 
       {/* top bar */}
       <div style={{
