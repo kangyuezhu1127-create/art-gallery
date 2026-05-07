@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
-import GalleryPage from './pages/GalleryPage';
+import GalleryRoomPage from './pages/GalleryRoomPage';
 import ViewerPage from './pages/ViewerPage';
 import { fetchArtworks, updateArtworkDB, deleteArtwork } from './lib/artworkService';
 
@@ -47,7 +47,7 @@ export default function App() {
           <Route
             path="/gallery"
             element={
-              <GalleryPage
+              <GalleryRoomPage
                 artworks={artworks}
                 loading={loading}
                 onAdd={addArtwork}
