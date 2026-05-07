@@ -69,3 +69,16 @@ body {
   0%   { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Symbol panel — SVG ink-brush draw animation */
+@keyframes inkDraw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes inkFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes inkPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.95); }
+  50%       { opacity: 1;   transform: scale(1.05); }
+}

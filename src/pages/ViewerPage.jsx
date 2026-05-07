@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Artwork3DViewer from '../components/Artwork3DViewer';
+import SymbolPanel from '../components/SymbolPanel';
 import { useGalleryTransition } from '../contexts/TransitionContext';
 
 export default function ViewerPage({ artworks, onUpdate }) {
@@ -90,6 +91,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
       </div>
 
       <div className="flex-1 relative min-h-0">
+        {has3D && <SymbolPanel artwork={artwork} />}
         {has3D ? (
           <Artwork3DViewer
             colorURL={artwork.originalURL}

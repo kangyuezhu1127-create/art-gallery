@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     const webhookUrl = `${SUPABASE_URL}/functions/v1/depth-webhook?artwork_id=${artworkId}`;
 
     const predRes = await fetch(
-      'https://api.replicate.com/v1/models/depth-anything/depth-anything-v2-large-hf/predictions',
+      'https://api.replicate.com/v1/predictions',
       {
         method: 'POST',
         headers: {
@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          version: 'a6ba5798f04f80d3b314de0f0a62277f21ab3503c60c84d4817de83c5edfdae0',
           input: { image: imageDataURL },
           webhook: webhookUrl,
           webhook_events_filter: ['completed'],
