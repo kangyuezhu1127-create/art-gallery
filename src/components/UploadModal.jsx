@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from 'react';
-import { removeBackground } from '@imgly/background-removal';
 import DepthWorker from '../workers/depth.worker.js?worker';
 import { getImageDimensions, depthInfoToDataURL, dataURLtoBlob } from '../utils/depthUtils';
 import { insertArtwork, uploadFile } from '../lib/artworkService';
@@ -98,10 +97,8 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
     if (!file || bgRemoving) return;
     setBgRemoving(true);
     try {
-      const blob = await removeBackground(file, {
-        publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/',
-        model: 'small',
-      });
+      const { removeBackground } = await import('@imgly/background-removal');
+      const blob = await removeBackground(file, { model: 'small' });
       processedBlobRef.current = blob;
       const url = URL.createObjectURL(blob);
       setPreviewURL(url);
