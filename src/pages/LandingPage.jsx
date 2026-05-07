@@ -10,7 +10,7 @@ export default function LandingPage() {
         background: '#fafaf8',
         display: 'flex',
         flexDirection: 'column',
-        padding: '2rem 3rem',
+        padding: '2.5rem 8vw',
       }}
     >
       {/* Header */}
