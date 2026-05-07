@@ -9,15 +9,15 @@ import AuthModal from '../components/AuthModal';
 import EditModal from '../components/EditModal';
 
 /* ─── Room constants ─── */
-const HW = 5.5;        // half-width of corridor
-const RH = 5.5;        // room height
+const HW = 6.5;        // half-width of corridor
+const RH = 5.0;        // room height
 const EYE = 0.6;       // camera eye height offset from center
 const GAP = 6.5;       // spacing between frames on same wall
 const FRAME_W = 3.2;   // max frame width
-const WALL_CLR = '#ede8df';
-const FLOOR_CLR = '#22180f';
-const FRAME_CLR = '#160d04';
-const FRAME_HOV = '#3d2010';
+const WALL_CLR = '#f8f4ee';
+const FLOOR_CLR = '#c8a96e';
+const FRAME_CLR = '#2a1a08';
+const FRAME_HOV = '#50321a';
 
 /* ─── Texture + artwork plane ─── */
 function ArtImage({ url, fw, fh }) {
@@ -128,15 +128,15 @@ function RoomShell({ length }) {
         <planeGeometry args={[HW * 2, RH]} />
         <meshStandardMaterial color={WALL_CLR} roughness={0.92} />
       </mesh>
-      {/* floor */}
+      {/* floor – polished light oak */}
       <mesh position={[0, -RH / 2, mid]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[HW * 2, length]} />
-        <meshStandardMaterial color={FLOOR_CLR} roughness={0.97} />
+        <meshStandardMaterial color={FLOOR_CLR} roughness={0.35} metalness={0.04} />
       </mesh>
-      {/* ceiling */}
+      {/* ceiling – bright white */}
       <mesh position={[0, RH / 2, mid]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[HW * 2, length]} />
-        <meshStandardMaterial color="#f5f0e8" roughness={1} />
+        <meshStandardMaterial color="#ffffff" roughness={1} />
       </mesh>
       {/* baseboard left */}
       <mesh position={[-HW + 0.03, -RH / 2 + 0.1, mid]}>
@@ -154,18 +154,19 @@ function RoomShell({ length }) {
 
 /* ─── Ceiling lights (evenly spaced) ─── */
 function CeilingLights({ length }) {
-  const count = Math.ceil(length / 6);
+  const count = Math.ceil(length / 4);
   return (
     <>
-      <ambientLight intensity={0.35} color="#fff8f0" />
+      <ambientLight intensity={1.6} color="#fff9f2" />
+      <directionalLight position={[0, 8, -5]} intensity={0.6} color="#fffaf5" />
       {Array.from({ length: count }, (_, i) => (
         <pointLight
           key={i}
-          position={[0, RH / 2 - 0.3, -(i * 6 + 1)]}
-          intensity={18}
-          distance={10}
+          position={[0, RH / 2 - 0.15, -(i * 4 + 1)]}
+          intensity={22}
+          distance={8}
           decay={2}
-          color="#fff5e8"
+          color="#fffaf2"
         />
       ))}
     </>
@@ -242,14 +243,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
 
   return (
     <div
-      style={{ width: '100vw', height: '100vh', background: '#0d0a07', position: 'relative', overflow: 'hidden' }}
+      style={{ width: '100vw', height: '100vh', background: '#f0ebe3', position: 'relative', overflow: 'hidden' }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
     >
       <Canvas
         camera={{ fov: 68, near: 0.05, far: 300 }}
         style={{ width: '100%', height: '100%' }}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.5 }}
       >
         <CameraRig targetZ={targetZ} />
         <CeilingLights length={roomLength} />
@@ -308,14 +309,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         position: 'absolute', top: 0, left: 0, right: 0,
         padding: '1.25rem 2rem',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%)',
+        background: 'linear-gradient(to bottom, rgba(240,235,227,0.85) 0%, transparent 100%)',
         pointerEvents: 'none',
       }}>
         <button
           onClick={() => navigate('/')}
           style={{
             pointerEvents: 'all', background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem', letterSpacing: '0.14em',
+            color: '#555', fontSize: '0.72rem', letterSpacing: '0.14em',
             display: 'flex', alignItems: 'center', gap: '0.5rem',
           }}
         >
@@ -325,9 +326,9 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
           onClick={handleUpload}
           style={{
             pointerEvents: 'all',
-            background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.25)',
-            color: 'white', padding: '0.45rem 1.2rem',
+            background: 'rgba(30,20,10,0.08)', backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(30,20,10,0.15)',
+            color: '#333', padding: '0.45rem 1.2rem',
             borderRadius: '9999px', fontSize: '0.72rem',
             letterSpacing: '0.1em', cursor: 'pointer',
           }}
@@ -339,7 +340,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       {/* progress bar */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0, height: '2px',
-        background: 'rgba(255,255,255,0.1)',
+        background: 'rgba(30,20,10,0.06)',
       }}>
         <div style={{
           height: '100%', width: `${progress * 100}%`,
@@ -351,7 +352,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       {/* hint */}
       <div style={{
         position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
-        color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', letterSpacing: '0.12em',
+        color: 'rgba(80,60,40,0.45)', fontSize: '0.65rem', letterSpacing: '0.12em',
         pointerEvents: 'none', whiteSpace: 'nowrap',
       }}>
         SCROLL · ↑↓ TO WALK · CLICK ARTWORK TO VIEW IN 3D
@@ -368,9 +369,9 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
           style={{
             position: 'absolute', right: '1.5rem', top,
             transform,
-            background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            color: 'rgba(255,255,255,0.6)', width: '2.25rem', height: '2.25rem',
+            background: 'rgba(30,20,10,0.07)', backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(30,20,10,0.15)',
+            color: 'rgba(60,40,20,0.6)', width: '2.25rem', height: '2.25rem',
             borderRadius: '50%', cursor: 'pointer', fontSize: '1rem',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
