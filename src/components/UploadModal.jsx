@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
-import { getImageDimensions, dataURLtoBlob } from '../utils/depthUtils';
+import DepthWorker from '../workers/depth.worker.js?worker';
+import { getImageDimensions, depthInfoToDataURL, dataURLtoBlob } from '../utils/depthUtils';
 import { insertArtwork, uploadFile } from '../lib/artworkService';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 
 function resizeImageDataURL(dataURL, maxPx = 512) {
   return new Promise((resolve) => {
@@ -21,40 +21,48 @@ function resizeImageDataURL(dataURL, maxPx = 512) {
   });
 }
 
-// Start Replicate job, then poll DB every 4s until depth_map_url is set
-async function startDepthGeneration(artworkId, imageDataURL, onUpdate) {
-  try {
-    onUpdate(artworkId, { depthStatus: '连接 AI 服务...' }, false);
+// Runs depth estimation in a Web Worker (free, browser-side)
+// then uploads the depth map to Supabase Storage
+function startDepthGeneration(artworkId, previewURL, onUpdate) {
+  resizeImageDataURL(previewURL, 512).then((resizedURL) => {
+    const worker = new DepthWorker();
 
-    const { error } = await supabase.functions.invoke('generate-depth', {
-      body: { artworkId, imageDataURL },
+    const timeout = setTimeout(() => {
+      onUpdate(artworkId, { depthStatus: '超时，请重试' }, false);
+      worker.terminate();
+    }, 5 * 60 * 1000);
+
+    worker.addEventListener('message', async (ev) => {
+      const { type, message, depthInfo } = ev.data;
+
+      if (type === 'progress') {
+        onUpdate(artworkId, { depthStatus: message }, false);
+      } else if (type === 'result') {
+        clearTimeout(timeout);
+        try {
+          const depthDataURL = depthInfoToDataURL(depthInfo);
+          const depthBlob = dataURLtoBlob(depthDataURL);
+          const depthMapURL = await uploadFile(`${artworkId}/depth.png`, depthBlob, 'image/png');
+          onUpdate(artworkId, { depthMapURL, depthStatus: '完成' }, true);
+        } catch (err) {
+          onUpdate(artworkId, { depthStatus: `上传失败：${err.message}` }, false);
+        }
+        worker.terminate();
+      } else if (type === 'error') {
+        clearTimeout(timeout);
+        onUpdate(artworkId, { depthStatus: `生成失败：${message}` }, false);
+        worker.terminate();
+      }
     });
-    if (error) throw error;
 
-    // Poll DB — Replicate posts result to depth-webhook which updates the DB
-    const deadline = Date.now() + 5 * 60 * 1000; // 5 min max
-    while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 4000));
+    worker.addEventListener('error', (err) => {
+      clearTimeout(timeout);
+      onUpdate(artworkId, { depthStatus: `Worker 错误：${err.message}` }, false);
+      worker.terminate();
+    });
 
-      const { data } = await supabase
-        .from('artworks')
-        .select('depth_map_url, depth_status')
-        .eq('id', artworkId)
-        .single();
-
-      if (data?.depth_map_url) {
-        onUpdate(artworkId, { depthMapURL: data.depth_map_url, depthStatus: '完成' }, false);
-        return;
-      }
-      if (data?.depth_status) {
-        onUpdate(artworkId, { depthStatus: data.depth_status }, false);
-        if (data.depth_status.startsWith('生成失败')) return;
-      }
-    }
-    onUpdate(artworkId, { depthStatus: '超时，请重试' }, false);
-  } catch (err) {
-    onUpdate(artworkId, { depthStatus: `生成失败：${err.message}` }, false);
-  }
+    worker.postMessage({ imageDataURL: resizedURL });
+  });
 }
 
 export default function UploadModal({ onClose, onAdd, onUpdate }) {
@@ -96,7 +104,6 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
       const aspectRatio = width / height;
       const id = crypto.randomUUID();
 
-      // Upload original to Supabase Storage
       const ext = file.type === 'image/png' ? 'png' : 'jpg';
       const originalURL = await uploadFile(`${id}/original.${ext}`, dataURLtoBlob(previewURL), file.type);
 
@@ -107,9 +114,8 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
       onAdd(artwork);
       onClose();
 
-      // Kick off depth generation in background (no Web Worker needed)
-      const resizedURL = await resizeImageDataURL(previewURL, 512);
-      startDepthGeneration(id, resizedURL, onUpdate);
+      // Start Worker in background — progress shown on artwork card
+      startDepthGeneration(id, previewURL, onUpdate);
 
     } catch (err) {
       setUploadStatus(`错误：${err.message}`);
@@ -176,7 +182,9 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
               上传并生成 3D
             </button>
           )}
-          <p className="text-xs text-gray-400 text-center">AI 在服务器端处理，通常 15-30 秒完成</p>
+          <p className="text-xs text-gray-400 text-center">
+            首次生成会下载约 50MB AI 模型，之后浏览器缓存，速度很快
+          </p>
         </form>
       </div>
     </div>
