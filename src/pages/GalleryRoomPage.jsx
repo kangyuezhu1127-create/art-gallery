@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useTexture, Text } from '@react-three/drei';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as THREE from 'three';
 import { useAuth } from '../contexts/AuthContext';
 import UploadModal from '../components/UploadModal';
@@ -9,7 +9,7 @@ import AuthModal from '../components/AuthModal';
 import EditModal from '../components/EditModal';
 
 /* ─── Room constants ─── */
-const HW     = 8.0;   // corridor half-width
+const HW     = 16.0;  // corridor half-width (doubled)
 const RH     = 18.0;  // room height (tall gallery)
 const EYE    = 1.5;   // camera eye Y
 const GAP    = 11.0;  // frame spacing along wall
@@ -182,12 +182,20 @@ function CameraRig({ targetZ, targetYaw }) {
 /* ─── Main gallery room page ─── */
 export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, onSave, onDelete }) {
   const navigate  = useNavigate();
+  const location  = useLocation();
   const { user }  = useAuth();
   const [targetZ,   setTargetZ]   = useState(3.5);
   const [targetYaw, setTargetYaw] = useState(0);
   const [showUpload, setShowUpload] = useState(false);
   const [showAuth,   setShowAuth]   = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+
+  // auto-open upload/auth when coming from SelectionPage "UPLOAD" card
+  useEffect(() => {
+    if (location.state?.openUpload) {
+      user ? setShowUpload(true) : setShowAuth(true);
+    }
+  }, []);
 
   const leftWall  = artworks.filter((_, i) => i % 2 === 0);
   const rightWall = artworks.filter((_, i) => i % 2 === 1);

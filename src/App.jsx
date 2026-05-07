@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
+import SelectionPage from './pages/SelectionPage';
 import GalleryRoomPage from './pages/GalleryRoomPage';
 import ViewerPage from './pages/ViewerPage';
 import { fetchArtworks, updateArtworkDB, deleteArtwork } from './lib/artworkService';
@@ -44,6 +45,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/enter" element={<SelectionPage artworks={artworks} />} />
           <Route
             path="/gallery"
             element={

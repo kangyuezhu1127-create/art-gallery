@@ -75,7 +75,7 @@ export default function LandingPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
           <Link
-            to="/gallery"
+            to="/enter"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
