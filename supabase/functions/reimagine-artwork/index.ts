@@ -9,39 +9,41 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-/* ── Step 1: Claude analysis prompt ── */
-const ANALYSIS_PROMPT = `You are analyzing an artwork to help generate a photorealistic photograph of the same scene.
+/* ── Step 1: subject-first analysis ── */
+const ANALYSIS_PROMPT = `Look at this artwork extremely carefully.
 
-Analyze every element precisely. Fill every field.
+First, identify the MAIN SUBJECT with precision:
+1. What is the main subject? A lion? Dragon? Human figure? Animal? Mythical creature? Plant? Be exact.
+2. What color is it predominantly?
+3. What cultural tradition does it represent? (Chinese lion dance? Beijing Opera? Folk art? etc.)
+4. Describe the exact shape and form of the main figure.
+5. What artistic style is this? (paper-cut, ink painting, embroidery, etc.)
 
-STRICT RULES — real_world_description and priority_elements must NEVER contain:
-paper-cut, jianzhi, silhouette, illustration, painting, lace, doily, openwork,
-lattice, watercolour, ink, brushwork, or any art-medium word.
-Translate every artistic element to its real physical counterpart:
-  circular lace medallion → real peony or chrysanthemum bloom
-  jianzhi vine pattern    → real green leaves and vine stems
-  paper-cut silhouette    → a real person with real skin
+CRITICAL: Do NOT invent elements not visible in the artwork. Stay strictly true to what you see.
+- A lion dance figure is NOT a monkey — identify correctly
+- A dragon is NOT a serpent — identify correctly
+- A human is NOT an animal — identify correctly
+
+Zero art-medium words allowed in real_world_description and priority_elements.
 
 Return ONLY this JSON (no markdown, no code fences):
 {
-  "subject": "who the figure is — cultural role, gender, exact facing direction",
-  "pose": "precise body orientation (e.g. 'strict left-facing profile, upper body, head upright')",
-  "composition": "where the figure sits in the frame (e.g. 'centred, slight left offset')",
-  "head_elements": "real flowers, headdress, ornaments on the head",
-  "neck_elements": "what drapes the neck and shoulders in real-world terms",
-  "body_elements": "real costume — fabric, colour, embroidery",
-  "cultural_style": "precise tradition (e.g. 'Beijing Opera dan role, Qing dynasty')",
-  "flower_types": "exact real flower species, colours, placement",
-  "real_world_description": "Two sentences describing this as a real photograph caption. Zero art-medium words. Be specific about flower species, costume colours, cultural context.",
-  "priority_elements": "2–4 key elements that MUST look photorealistic. For each: what it is and exactly how it looks as a real physical object. Example: 'PEONIES: large fully-bloomed deep pink peonies with silky layered petals and visible golden stamens | OPERA MAKEUP: porcelain white face, bold crimson lips, elongated black liner sweeping to temples | LEAVES: lush green fern fronds with visible pinnate venation wrapping the shoulders'"
+  "main_subject": "exactly what the main figure IS — very specific (e.g. 'Chinese lion dance costume head viewed from front', 'coiled red Chinese dragon', 'Beijing Opera actress in profile', 'leaping koi fish')",
+  "subject_color": "dominant color(s) of the main subject",
+  "cultural_context": "precise cultural tradition",
+  "subject_form": "exact shape, pose, orientation of the main figure",
+  "composition": "how the figure is positioned in the frame",
+  "secondary_elements": "any decorative or background elements",
+  "real_world_description": "Two precise sentences describing what a real photograph of this exact subject looks like. Name the subject correctly and specifically. Zero art-medium words.",
+  "priority_elements": "2–3 key visual elements that MUST be accurate in the output. Format: 'SUBJECT NAME: exactly how it looks in real life | ELEMENT 2: precise real-world description | ELEMENT 3: precise real-world description'"
 }`;
 
 /* ── Build the image generation prompt ── */
 function buildPrompt(a: Record<string, string>): string {
   const subject = a.real_world_description
-    ?? `${a.subject ?? 'a traditionally dressed woman'}, ${a.pose ?? 'standing in profile'}`;
+    ?? `${a.main_subject ?? a.subject ?? 'the subject of this artwork'}, ${a.subject_form ?? a.pose ?? ''}`;
 
-  const composition = [a.pose, a.composition].filter(Boolean).join(', ');
+  const composition = [a.subject_form ?? a.pose, a.composition].filter(Boolean).join(', ');
 
   const lines = [
     // Strong photorealism anchors — placed first so the model prioritises them
