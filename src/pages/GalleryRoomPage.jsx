@@ -75,7 +75,11 @@ function loadTextureSafe(url, onLoad, onError) {
 }
 
 /* ─── Artwork image plane — self-contained loading with retry ─── */
-function ArtImage({ url, fw, fh }) {
+function ArtImage({ url, fw, fh, depth }) {
+  // Place backing + artwork just in front of the frame's front face (depth/2)
+  // so they're never buried inside the frame body regardless of style depth.
+  const backingZ = depth / 2 + 0.008;
+  const artworkZ = depth / 2 + 0.020;
   const [texture,  setTexture]  = useState(null);
   const [retries,  setRetries]  = useState(0);
   const mountedRef = useRef(true);
@@ -104,14 +108,14 @@ function ArtImage({ url, fw, fh }) {
 
   return (
     <group>
-      {/* backing plane — always visible, gives contrast for white-bg artworks */}
-      <mesh position={[0, 0, 0.055]}>
+      {/* backing plane — always in front of frame face, gives contrast for white-bg art */}
+      <mesh position={[0, 0, backingZ]}>
         <planeGeometry args={[fw, fh]} />
         <meshStandardMaterial color="#d6d6d6" roughness={1} />
       </mesh>
       {/* artwork — appears once texture is ready */}
       {texture && (
-        <mesh position={[0, 0, 0.070]}>
+        <mesh position={[0, 0, artworkZ]}>
           <planeGeometry args={[fw, fh]} />
           <meshStandardMaterial
             map={texture}
@@ -214,7 +218,7 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
       )}
 
       {/* artwork image — self-loading with error recovery */}
-      <ArtImage url={artwork.originalURL} fw={fw} fh={fh} />
+      <ArtImage url={artwork.originalURL} fw={fw} fh={fh} depth={s.depth} />
 
       {/* top-edge highlight */}
       <mesh position={[0, (fh + b) / 2, s.depth * 0.45]}>
