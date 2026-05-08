@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useTexture, Text } from '@react-three/drei';
+import { Text } from '@react-three/drei';
 import { useNavigate, useLocation } from 'react-router-dom';
 import * as THREE from 'three';
 import { useAuth } from '../contexts/AuthContext';
@@ -49,21 +49,82 @@ const STYLES = [
   },
 ];
 
-/* ─── Texture plane ─── */
+/* ─── Safe texture loader — no Suspense, handles errors + oversized images ─── */
+const MAX_TEX = 2048; // safe WebGL texture dimension for all devices
+
+function loadTextureSafe(url, onLoad, onError) {
+  const img = new window.Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try {
+      let src = img;
+      // Resize if image exceeds WebGL MAX_TEXTURE_SIZE
+      if (img.naturalWidth > MAX_TEX || img.naturalHeight > MAX_TEX) {
+        const scale = Math.min(MAX_TEX / img.naturalWidth, MAX_TEX / img.naturalHeight);
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.naturalWidth  * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        src = canvas;
+      }
+      const tex = src instanceof HTMLCanvasElement
+        ? new THREE.CanvasTexture(src)
+        : new THREE.Texture(img);
+      tex.colorSpace  = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      onLoad(tex);
+    } catch (e) { onError(e); }
+  };
+  img.onerror = onError;
+  img.src = url;
+}
+
+/* ─── Artwork image plane — self-contained loading with retry ─── */
 function ArtImage({ url, fw, fh }) {
-  const texture = useTexture(url);
+  const [texture,  setTexture]  = useState(null);
+  const [retries,  setRetries]  = useState(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    setTexture(null);
+
+    let timer;
+    loadTextureSafe(
+      url,
+      (tex) => { if (mountedRef.current) setTexture(tex); },
+      ()    => {
+        // auto-retry up to 3 times with increasing delay
+        timer = setTimeout(() => {
+          if (mountedRef.current) setRetries(r => r + 1);
+        }, 1500 * (retries + 1));
+      }
+    );
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(timer);
+    };
+  }, [url, retries]);
+
   return (
     <group>
-      {/* neutral backing so white/transparent artworks are visible against white walls */}
-      <mesh position={[0, 0, 0.063]}>
+      {/* backing plane — always visible, gives contrast for white-bg artworks */}
+      <mesh position={[0, 0, 0.055]}>
         <planeGeometry args={[fw, fh]} />
-        <meshStandardMaterial color="#d8d8d8" roughness={1} />
+        <meshStandardMaterial color="#d6d6d6" roughness={1} />
       </mesh>
-      {/* artwork with alpha transparency enabled */}
-      <mesh position={[0, 0, 0.068]}>
-        <planeGeometry args={[fw, fh]} />
-        <meshStandardMaterial map={texture} toneMapped={false} transparent alphaTest={0.01} />
-      </mesh>
+      {/* artwork — appears once texture is ready */}
+      {texture && (
+        <mesh position={[0, 0, 0.070]}>
+          <planeGeometry args={[fw, fh]} />
+          <meshStandardMaterial
+            map={texture}
+            toneMapped={false}
+            transparent
+            alphaTest={0.01}
+          />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -156,17 +217,8 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
         </mesh>
       )}
 
-      {/* artwork image */}
-      <Suspense
-        fallback={
-          <mesh position={[0, 0, 0.068]}>
-            <planeGeometry args={[fw, fh]} />
-            <meshStandardMaterial color="#e8e8e8" />
-          </mesh>
-        }
-      >
-        <ArtImage url={artwork.originalURL} fw={fw} fh={fh} />
-      </Suspense>
+      {/* artwork image — self-loading with error recovery */}
+      <ArtImage url={artwork.originalURL} fw={fw} fh={fh} />
 
       {/* top-edge highlight */}
       <mesh position={[0, (fh + b) / 2, s.depth * 0.45]}>
