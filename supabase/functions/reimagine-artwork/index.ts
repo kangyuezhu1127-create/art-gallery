@@ -9,86 +9,107 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-/* ── Step 1: deep analysis with real-world translation and realism anchors ── */
-const ANALYSIS_PROMPT = `You are analyzing an artwork to help generate a photorealistic photograph.
+/* ── Step 1: Claude analysis prompt ── */
+const ANALYSIS_PROMPT = `You are analyzing an artwork to help generate a photorealistic photograph of the same scene.
 
-Analyze the artwork carefully. Fill every field below.
+Analyze every element precisely. Fill every field.
 
-RULES — real_world_description and priority_elements must NEVER contain:
+STRICT RULES — real_world_description and priority_elements must NEVER contain:
 paper-cut, jianzhi, silhouette, illustration, painting, lace, doily, openwork,
 lattice, watercolour, ink, brushwork, or any art-medium word.
 Translate every artistic element to its real physical counterpart:
   circular lace medallion → real peony or chrysanthemum bloom
   jianzhi vine pattern    → real green leaves and vine stems
-  silhouette outline      → a real person with real skin and real costume
+  paper-cut silhouette    → a real person with real skin
 
 Return ONLY this JSON (no markdown, no code fences):
 {
-  "subject": "who the figure is — cultural role, gender, exact facing direction and body framing",
-  "pose": "precise body orientation (e.g. 'strict left-facing profile, upper body only, head held upright')",
-  "composition": "where the figure sits in the frame (e.g. 'centred vertically, slight left offset, negative space to the right')",
-  "head_elements": "real-world description of hair, headdress, ornaments, flowers ON the head",
-  "neck_elements": "real-world description of what drapes the neck and shoulders",
-  "body_elements": "real costume — fabric type, colours, embroidery, silhouette",
-  "cultural_style": "precise cultural tradition (e.g. 'Beijing Opera female dan role, Qing dynasty aesthetic')",
-  "flower_types": "exact real flower species present, colours, placement (e.g. 'large pink peonies in the headdress, yellow chrysanthemums at the temple, green lotus leaves at the shoulders')",
-  "real_world_description": "Two-sentence photograph caption in plain English. Zero art-medium words. Describe the real person, their real costume, their real flowers, their real setting. Be very specific about flower species and colours.",
-  "priority_elements": "Describe 2–4 key visual elements that MUST look photorealistic in the output. For each write exactly how it should appear as a real object. Format: 'PEONIES: large fully-bloomed peonies with layered silky petals in deep pink, visible golden stamens at centre, wet-looking petals | OPERA MAKEUP: porcelain white face foundation, bold crimson lip, elongated black eye liner sweeping to temples, high arched painted eyebrows | LEAVES: real green monstera or maple leaves, visible leaf venation, stems wrapping naturally around the shoulder'"
+  "subject": "who the figure is — cultural role, gender, exact facing direction",
+  "pose": "precise body orientation (e.g. 'strict left-facing profile, upper body, head upright')",
+  "composition": "where the figure sits in the frame (e.g. 'centred, slight left offset')",
+  "head_elements": "real flowers, headdress, ornaments on the head",
+  "neck_elements": "what drapes the neck and shoulders in real-world terms",
+  "body_elements": "real costume — fabric, colour, embroidery",
+  "cultural_style": "precise tradition (e.g. 'Beijing Opera dan role, Qing dynasty')",
+  "flower_types": "exact real flower species, colours, placement",
+  "real_world_description": "Two sentences describing this as a real photograph caption. Zero art-medium words. Be specific about flower species, costume colours, cultural context.",
+  "priority_elements": "2–4 key elements that MUST look photorealistic. For each: what it is and exactly how it looks as a real physical object. Example: 'PEONIES: large fully-bloomed deep pink peonies with silky layered petals and visible golden stamens | OPERA MAKEUP: porcelain white face, bold crimson lips, elongated black liner sweeping to temples | LEAVES: lush green fern fronds with visible pinnate venation wrapping the shoulders'"
 }`;
 
-/* ── Build fal.ai prompt — real scene + composition anchor + element realism ── */
+/* ── Build the image generation prompt ── */
 function buildPrompt(a: Record<string, string>): string {
-  const lines: string[] = [
-    'Photorealistic DSLR photograph, cinematic studio lighting.',
+  const subject = a.real_world_description
+    ?? `${a.subject ?? 'a traditionally dressed woman'}, ${a.pose ?? 'standing in profile'}`;
+
+  const composition = [a.pose, a.composition].filter(Boolean).join(', ');
+
+  const lines = [
+    // Strong photorealism anchors — placed first so the model prioritises them
+    'A hyper-realistic photograph of a real person.',
+    'NOT digital art. NOT CGI. NOT illustrated. NOT animated. NOT a 3D render.',
+    'Must look exactly like a real photograph taken on a camera.',
+
+    // The real-world scene
+    subject,
+
+    // Composition anchor
+    composition ? `Exact framing: ${composition}.` : '',
+
+    // Priority element realism
+    a.priority_elements
+      ? `These elements MUST look photorealistic and physically real: ${a.priority_elements}.`
+      : '',
+
+    // Photography quality
+    'Real human skin with natural texture, pores, and subtle imperfections.',
+    'Real flower petals with natural depth, translucency, and botanical accuracy.',
+    'Shot on 85mm portrait lens, soft studio lighting.',
+    'Photojournalism quality, sharp focus, ultra-detailed, 8K resolution.',
   ];
 
-  // Core real-world scene (no art-medium words)
-  if (a.real_world_description) lines.push(a.real_world_description);
+  return lines.filter(Boolean).join(' ');
+}
 
-  // Composition anchor — keeps layout stable even at high strength
-  if (a.pose || a.composition) {
-    lines.push(
-      `Exact composition: ${[a.pose, a.composition].filter(Boolean).join('; ')}.`
-    );
-  }
+/* ── Upload base64 image to Supabase Storage, return public URL ── */
+async function storeImage(
+  supabaseUrl: string, serviceKey: string,
+  b64: string
+): Promise<string> {
+  const binary = atob(b64);
+  const bytes  = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-  // Priority element realism — the most important instruction
-  if (a.priority_elements) {
-    lines.push(`MUST LOOK PHOTOREALISTIC — ${a.priority_elements}.`);
-  }
-
-  // Photography quality
-  lines.push(
-    'Ultra-detailed realistic skin texture, fabric weave, and botanical detail.',
-    'Sharp focus, shallow depth of field, 8K resolution.',
-    'Same framing and figure placement as the reference image.',
-  );
-
-  return lines.join(' ');
+  const path = `reimagined/${crypto.randomUUID()}.png`;
+  const res  = await fetch(`${supabaseUrl}/storage/v1/object/artworks/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      'Content-Type': 'image/png',
+      'x-upsert': 'true',
+    },
+    body: bytes,
+  });
+  if (!res.ok) throw new Error(`Storage upload failed: ${await res.text()}`);
+  return `${supabaseUrl}/storage/v1/object/public/artworks/${path}`;
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
   const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-  const FAL_KEY       = Deno.env.get('FAL_KEY');
+  const OPENAI_KEY    = Deno.env.get('OPENAI_API_KEY');
+  const SUPABASE_URL  = Deno.env.get('SUPABASE_URL');
+  const SERVICE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-  if (!ANTHROPIC_KEY) {
-    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
-      status: 503, headers: { ...cors, 'Content-Type': 'application/json' },
-    });
-  }
-  if (!FAL_KEY) {
-    return new Response(JSON.stringify({ error: 'FAL_KEY not configured' }), {
-      status: 503, headers: { ...cors, 'Content-Type': 'application/json' },
-    });
-  }
+  if (!ANTHROPIC_KEY) return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), { status: 503, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (!OPENAI_KEY)    return new Response(JSON.stringify({ error: 'OPENAI_API_KEY not configured — run: supabase secrets set OPENAI_API_KEY=sk-...' }), { status: 503, headers: { ...cors, 'Content-Type': 'application/json' } });
 
   try {
     const { imageURL } = await req.json();
     if (!imageURL) throw new Error('imageURL is required');
 
-    /* ── Claude Sonnet — deep analysis + real-world translation ── */
+    /* ── Step 1: Claude Sonnet — deep analysis + real-world translation ── */
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -120,32 +141,39 @@ Deno.serve(async (req) => {
 
     const imgPrompt = buildPrompt(analysis);
 
-    /* ── fal.ai FLUX img2img ──
-       strength 0.93: nearly ignores input visual style (breaks paper-cut aesthetic)
-       but the detailed composition + pose text keeps the layout intact.
-       guidance_scale 8.0: strict adherence to photorealism prompt.        ── */
-    const falRes = await fetch('https://fal.run/fal-ai/flux/dev/image-to-image', {
+    /* ── Step 2: OpenAI gpt-image-1 — photorealistic text-to-image ── */
+    const openaiRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Key ${FAL_KEY}`,
+        'Authorization': `Bearer ${OPENAI_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        image_url:           imageURL,
-        prompt:              imgPrompt,
-        strength:            0.93,
-        num_inference_steps: 28,
-        guidance_scale:      8.0,
-        num_images:          1,
-        enable_safety_checker: true,
+        model:   'gpt-image-1',
+        prompt:  imgPrompt,
+        n:       1,
+        size:    '1024x1024',
+        quality: 'high',
       }),
     });
 
-    if (!falRes.ok) throw new Error(`fal.ai ${falRes.status}: ${await falRes.text()}`);
+    if (!openaiRes.ok) throw new Error(`OpenAI ${openaiRes.status}: ${await openaiRes.text()}`);
 
-    const falData  = await falRes.json();
-    const imageOut = falData?.images?.[0]?.url ?? falData?.image?.url;
-    if (!imageOut) throw new Error('fal.ai returned no image URL');
+    const openaiData = await openaiRes.json();
+    const item       = openaiData.data?.[0];
+    if (!item) throw new Error('OpenAI returned no image data');
+
+    // gpt-image-1 returns b64_json; upload to storage for a stable public URL
+    let imageOut: string;
+    if (item.url) {
+      imageOut = item.url;
+    } else if (item.b64_json && SUPABASE_URL && SERVICE_KEY) {
+      imageOut = await storeImage(SUPABASE_URL, SERVICE_KEY, item.b64_json);
+    } else if (item.b64_json) {
+      imageOut = `data:image/png;base64,${item.b64_json}`;
+    } else {
+      throw new Error('OpenAI returned no usable image');
+    }
 
     return new Response(JSON.stringify({ imageURL: imageOut, prompt: imgPrompt, analysis }), {
       headers: { ...cors, 'Content-Type': 'application/json' },
