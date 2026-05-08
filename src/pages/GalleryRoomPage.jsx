@@ -53,10 +53,18 @@ const STYLES = [
 function ArtImage({ url, fw, fh }) {
   const texture = useTexture(url);
   return (
-    <mesh position={[0, 0, 0.068]}>
-      <planeGeometry args={[fw, fh]} />
-      <meshStandardMaterial map={texture} toneMapped={false} />
-    </mesh>
+    <group>
+      {/* neutral backing so white/transparent artworks are visible against white walls */}
+      <mesh position={[0, 0, 0.063]}>
+        <planeGeometry args={[fw, fh]} />
+        <meshStandardMaterial color="#d8d8d8" roughness={1} />
+      </mesh>
+      {/* artwork with alpha transparency enabled */}
+      <mesh position={[0, 0, 0.068]}>
+        <planeGeometry args={[fw, fh]} />
+        <meshStandardMaterial map={texture} toneMapped={false} transparent alphaTest={0.01} />
+      </mesh>
+    </group>
   );
 }
 
