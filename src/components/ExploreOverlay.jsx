@@ -52,6 +52,9 @@ function BigSymbolSVG({ type, color, size = 240 }) {
   );
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 /* Generates one symbol image via edge function, caches in module-level map */
 const imageCache = new Map();
 
@@ -59,10 +62,19 @@ async function fetchSymbolImage(symbol) {
   const key = `${symbol.name_zh}-${symbol.type}`;
   if (imageCache.has(key)) return imageCache.get(key);
 
-  const { data, error } = await supabase.functions.invoke('generate-symbol-image', {
-    body: { nameZh: symbol.name_zh, nameEn: symbol.name_en, type: symbol.type },
+  const resp = await fetch(`${SUPABASE_URL}/functions/v1/generate-symbol-image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({ nameZh: symbol.name_zh, nameEn: symbol.name_en, type: symbol.type }),
+    signal: AbortSignal.timeout(70000),
   });
-  if (error || data?.error) throw new Error(error?.message || data?.error || 'Generation failed');
+
+  const data = await resp.json();
+  if (!resp.ok || data?.error) throw new Error(data?.error || `HTTP ${resp.status}`);
+  if (!data?.imageURL) throw new Error('No image URL in response');
   imageCache.set(key, data.imageURL);
   return data.imageURL;
 }
@@ -73,17 +85,22 @@ function SymbolView({ symbol, onPrev, onNext, hasPrev, hasNext, index, total }) 
   const [loading,  setLoading]  = useState(!imageURL);
   const [error,    setError]    = useState('');
   const [visible,  setVisible]  = useState(false);
+  const [elapsed,  setElapsed]  = useState(0);
 
   useEffect(() => {
     setVisible(false);
-    setImageURL(imageCache.get(`${symbol.name_zh}-${symbol.type}`) ?? null);
+    setElapsed(0);
+    const cached = imageCache.get(`${symbol.name_zh}-${symbol.type}`);
+    setImageURL(cached ?? null);
     setError('');
 
-    if (!imageCache.has(`${symbol.name_zh}-${symbol.type}`)) {
+    if (!cached) {
       setLoading(true);
+      let tick = setInterval(() => setElapsed(s => s + 1), 1000);
       fetchSymbolImage(symbol)
-        .then(url => { setImageURL(url); setLoading(false); })
-        .catch(e  => { setError(e.message); setLoading(false); });
+        .then(url => { clearInterval(tick); setImageURL(url); setLoading(false); })
+        .catch(e  => { clearInterval(tick); setError(e.message); setLoading(false); });
+      return () => clearInterval(tick);
     } else {
       setLoading(false);
     }
@@ -125,9 +142,30 @@ function SymbolView({ symbol, onPrev, onNext, hasPrev, hasNext, index, total }) 
               borderTopColor: 'transparent',
               animation: 'spin 1s linear infinite',
             }} />
-            <p style={{ fontSize: '0.68rem', color: '#555', letterSpacing: '0.14em' }}>
-              生成 {symbol.name_zh} 图像...
+            <p style={{ fontSize: '0.72rem', color: '#888', letterSpacing: '0.12em' }}>
+              AI 生成 {symbol.name_zh} 水墨画...
             </p>
+            <p style={{ fontSize: '0.62rem', color: '#444', letterSpacing: '0.1em' }}>
+              {elapsed}s · 通常需要 5–15 秒
+            </p>
+          </div>
+        )}
+
+        {/* Error message */}
+        {error && (
+          <div style={{ position: 'absolute', bottom: '30%', left: 0, right: 0,
+            textAlign: 'center', padding: '0 2rem' }}>
+            <p style={{ color: '#c05050', fontSize: '0.72rem', marginBottom: '0.8rem' }}>{error}</p>
+            <button onClick={() => {
+              setError(''); setLoading(true); setElapsed(0);
+              let tick = setInterval(() => setElapsed(s => s + 1), 1000);
+              fetchSymbolImage(symbol)
+                .then(url => { clearInterval(tick); setImageURL(url); setLoading(false); })
+                .catch(e  => { clearInterval(tick); setError(e.message); setLoading(false); });
+            }} style={{
+              background: 'none', border: '1px solid #555', borderRadius: 6,
+              color: '#888', fontSize: '0.65rem', padding: '0.35rem 0.8rem', cursor: 'pointer',
+            }}>重试</button>
           </div>
         )}
 
