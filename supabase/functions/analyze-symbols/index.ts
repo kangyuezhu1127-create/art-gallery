@@ -11,21 +11,33 @@ const cors = {
 
 const PROMPT = `You are an expert in traditional Chinese art, culture, symbolism, and visual aesthetics.
 
-Analyze this artwork and identify 3–5 traditional Chinese cultural symbols, motifs, or elements present.
+Analyze this artwork and identify 3-5 traditional Chinese cultural symbols, motifs, or elements present.
 
-For each element, return a JSON object with:
-- name_zh: Chinese name (2–5 characters)
+For each element output a JSON object with these exact fields:
+- name_zh: Chinese name (2-5 characters)
 - name_en: English name
-- meaning_zh: Cultural meaning in Chinese (2–3 concise sentences explaining historical/spiritual significance)
-- type: one of exactly these values: peony | vine | dragon | phoenix | bamboo | lotus | crane | cloud | fish | opera | lantern | koi | plum | fan | default
-- color: a warm hex color that evokes this element (e.g. "#e8a0b0" for peony pink)
+- meaning_zh: Cultural meaning in Chinese, 1-2 sentences. CRITICAL: do NOT use any double-quote characters inside this text. Use Chinese guillemets like 《》or just write without quotation marks.
+- type: exactly one of: peony vine dragon phoenix bamboo lotus crane cloud fish opera lantern koi plum fan default
+- color: hex color evoking this element, e.g. #e8a0b0
 
-Rules:
-- Choose "type" based on the closest match. If none match, use "default".
-- Focus on genuine traditional Chinese cultural symbols, not just generic decorative elements.
-- Be specific: "牡丹" not just "花".
+Output ONLY a raw JSON array. No markdown, no code fences, no explanation.
+Example: [{"name_zh":"牡丹","name_en":"Peony","meaning_zh":"国花，象征富贵繁荣。","type":"peony","color":"#e8a0b0"}]`;
 
-Return ONLY a valid JSON array — no markdown, no explanation, no code fences.`;
+/** Fix unescaped double-quotes inside JSON string values */
+function repairJson(text: string): string {
+  // Replace curly/smart quotes that may confuse the parser
+  let s = text
+    .replace(/[“”]/g, '\\"')  // " " → \"
+    .replace(/[‘’]/g, "'");   // ' ' → '
+
+  // Replace literal \n in strings with space to avoid multiline parse issues
+  s = s.replace(/\r?\n/g, '\\n');
+
+  // Re-normalise escaped newlines that are already escaped
+  s = s.replace(/\\n/g, ' ');
+
+  return s;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
@@ -42,13 +54,6 @@ Deno.serve(async (req) => {
     const { imageURL } = await req.json();
     if (!imageURL) throw new Error('imageURL is required');
 
-    // Fetch image and encode as base64 (more reliable than URL passing)
-    const imgRes = await fetch(imageURL);
-    if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
-    const imgBuf = await imgRes.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuf)));
-    const mediaType = (imgRes.headers.get('content-type') || 'image/jpeg').split(';')[0];
-
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -62,7 +67,7 @@ Deno.serve(async (req) => {
         messages: [{
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'image', source: { type: 'url', url: imageURL } },
             { type: 'text', text: PROMPT },
           ],
         }],
@@ -75,9 +80,36 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    const raw = data.content?.[0]?.text?.trim() ?? '[]';
-    const match = raw.match(/\[[\s\S]*\]/);
-    const symbols = match ? JSON.parse(match[0]) : [];
+    const raw = (data.content?.[0]?.text ?? '').trim();
+
+    // Strip markdown fences
+    const cleaned = raw
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/, '')
+      .trim();
+
+    let symbols: unknown[] = [];
+
+    // Attempt 1: direct parse
+    try {
+      const parsed = JSON.parse(cleaned);
+      symbols = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      // Attempt 2: repair then parse
+      try {
+        const repaired = repairJson(cleaned);
+        const parsed = JSON.parse(repaired);
+        symbols = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        // Attempt 3: extract array with regex then repair
+        const match = cleaned.match(/\[[\s\S]*\]/);
+        if (match) {
+          try {
+            symbols = JSON.parse(repairJson(match[0]));
+          } catch { symbols = []; }
+        }
+      }
+    }
 
     return new Response(JSON.stringify({ symbols }), {
       headers: { ...cors, 'Content-Type': 'application/json' },
