@@ -62,7 +62,9 @@ Deno.serve(async (req) => {
       }
     );
 
-    const prediction = await createRes.json();
+    const predText = await createRes.text();
+    if (!createRes.ok) throw new Error(`Replicate ${createRes.status}: ${predText}`);
+    const prediction = JSON.parse(predText);
 
     // If synchronous wait succeeded, output is already there
     if (prediction.output?.[0]) {
@@ -73,7 +75,7 @@ Deno.serve(async (req) => {
 
     // Otherwise poll (fallback)
     const getUrl = prediction.urls?.get;
-    if (!getUrl) throw new Error('No prediction URL');
+    if (!getUrl) throw new Error(`No prediction URL. Status=${prediction.status} detail=${JSON.stringify(prediction.error ?? prediction).slice(0,200)}`);
 
     for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 2000));
