@@ -9,15 +9,23 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const VISION_PROMPT = `Analyze this artwork carefully.
-Describe exactly what is depicted: subjects, their poses, positions, spatial arrangement, setting, any actions.
-Then write a prompt for an AI image generator to create a PHOTOREALISTIC real-world scene
-that preserves the EXACT same composition, spatial layout, and positions of every element.
+const VISION_PROMPT = `You are looking at a piece of artwork. Your job is to identify the REAL-WORLD SCENE being depicted.
 
-Return ONLY this JSON (no markdown, no explanation):
+COMPLETELY IGNORE the artistic style (paper-cut, silhouette, illustration, painting, etc.).
+Focus only on: what real subjects, people, animals, or objects are shown, their poses, positions, and what scene or setting they are in.
+
+Then write a prompt that will generate a PHOTOREALISTIC PHOTOGRAPH of that same real-world scene.
+
+Rules for the prompt:
+- Start with "Photorealistic DSLR photograph,"
+- Describe real humans, animals, objects — never mention artwork, illustration, or any artistic medium
+- Preserve the exact composition, pose, and spatial layout
+- End with: "professional photography, natural lighting, shallow depth of field, sharp focus, ultra-detailed, 8K, cinematic"
+
+Return ONLY this JSON (no markdown, no code fences):
 {
-  "scene": "one sentence describing the scene",
-  "prompt": "Photorealistic photograph, [full detailed description of subjects and their exact positions/poses], same composition and spatial layout as the reference image, professional photography, natural lighting, cinematic quality, high detail, 8K"
+  "scene": "one sentence: what real-world scene is being depicted",
+  "prompt": "Photorealistic DSLR photograph of [real subjects with exact poses and positions], [scene/setting], same composition as reference, professional photography, natural lighting, shallow depth of field, sharp focus, ultra-detailed, 8K, cinematic"
 }`;
 
 Deno.serve(async (req) => {
@@ -83,9 +91,11 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         image_url:           imageURL,
         prompt:              imgPrompt,
-        strength:            0.78,   // high enough to transform style, low enough to keep layout
+        // 0.88 = strong enough to fully shed the artistic style and become photorealistic
+        // while the composition-heavy prompt keeps the layout intact
+        strength:            0.88,
         num_inference_steps: 28,
-        guidance_scale:      3.5,
+        guidance_scale:      7.5,    // higher = follows photorealism prompt more strictly
         num_images:          1,
         enable_safety_checker: true,
       }),
