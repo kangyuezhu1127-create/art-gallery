@@ -3,12 +3,10 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
-/* 1 full revolution every ~10 seconds at 60 fps
-   Three.js default speed=2 ≡ 30 s/rev  →  speed=6 ≡ 10 s/rev  */
-const AUTO_ROTATE_SPEED = 6;
-const RESUME_DELAY_MS   = 3000;   // ms of inactivity before auto-rotation resumes
+const SPEED_RAD_PER_S = (Math.PI * 2) / 10;   // 10 s per full revolution
+const RESUME_DELAY_MS = 3000;                  // ms of inactivity before spin resumes
 
-/* ─── Artwork mesh — upright, static rotation; only displacement breathes ─── */
+/* ─── Artwork mesh — displacement breathes, orientation driven by parent groups ─── */
 function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
   const [colorTex, depthTex] = useTexture([colorURL, depthURL]);
   colorTex.colorSpace = THREE.SRGBColorSpace;
@@ -19,7 +17,7 @@ function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
 
   useFrame(({ clock }) => {
     if (!meshRef.current?.material) return;
-    // Subtle displacement breathing — depth feels alive without changing orientation
+    // Subtle depth breathing — feels alive without changing pose
     meshRef.current.material.displacementScale =
       dispRef.current + Math.sin(clock.elapsedTime * 0.4) * 0.012;
   });
@@ -28,8 +26,7 @@ function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
   const h = w / (aspectRatio || 1);
 
   return (
-    // rotation locked to (0,0,0) — camera orbits via OrbitControls, not mesh rotation
-    <mesh ref={meshRef} rotation={[0, 0, 0]}>
+    <mesh ref={meshRef}>
       <planeGeometry args={[w, h, 256, 256]} />
       <meshStandardMaterial
         color="#000000"
@@ -45,7 +42,7 @@ function ArtworkMesh({ colorURL, depthURL, displacementScale, aspectRatio }) {
   );
 }
 
-/* ─── Fires onReady after textures load and first frame renders ─── */
+/* ─── Fires onReady after textures loaded + first frame rendered ─── */
 function SceneReady({ onReady }) {
   const fired = useRef(false);
   useFrame(() => {
@@ -56,52 +53,74 @@ function SceneReady({ onReady }) {
   return null;
 }
 
-/* ─── Fits camera so artwork fills ~80 % of viewport on first load ─── */
+/* ─── Fits camera so artwork fills ~80 % of viewport ─── */
 function AutoCamera({ aspectRatio }) {
   const { camera, size } = useThree();
   useFrame(() => {
     if (camera.userData.fitted) return;
     camera.userData.fitted = true;
-    const meshH = 3 / (aspectRatio || 1);
+    const meshH  = 3 / (aspectRatio || 1);
     const fovRad = (camera.fov * Math.PI) / 180;
-    const fitByH = (meshH / 2 / Math.tan(fovRad / 2)) / 0.8;
-    const fitByW = (3 / (2 * Math.tan(fovRad / 2) * (size.width / size.height))) / 0.8;
-    camera.position.set(0, 0, Math.max(fitByH, fitByW));
+    const fitH   = (meshH / 2 / Math.tan(fovRad / 2)) / 0.8;
+    const fitW   = (3 / (2 * Math.tan(fovRad / 2) * (size.width / size.height))) / 0.8;
+    camera.position.set(0, 0, Math.max(fitH, fitW));
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
   });
   return null;
 }
 
-/* ─── Scene: auto-rotate via OrbitControls; pause on touch, resume after 3 s ─── */
+/* ─── Scene: pivot spin + paper flutter + user orbit ─── */
 function Scene({ colorURL, depthURL, displacementScale, aspectRatio, onReady }) {
-  const controlsRef    = useRef();
-  const lastInteractMs = useRef(-Infinity); // ms timestamp of last user interaction
+  const pivotRef     = useRef();   // display-pedestal Y spin
+  const paperRef     = useRef();   // paper-in-wind subtle bend
+  const lastInteract = useRef(-Infinity); // ms timestamp
 
-  useFrame(() => {
-    if (!controlsRef.current) return;
-    const idle = (performance.now() - lastInteractMs.current) > RESUME_DELAY_MS;
-    controlsRef.current.autoRotate = idle;
+  useFrame((_, delta) => {
+    const now  = performance.now();
+    const idle = (now - lastInteract.current) > RESUME_DELAY_MS;
+
+    /* ── Display pedestal spin — stops while user is interacting ── */
+    if (pivotRef.current) {
+      if (idle) {
+        pivotRef.current.rotation.y =
+          (pivotRef.current.rotation.y + delta * SPEED_RAD_PER_S) % (Math.PI * 2);
+      }
+    }
+
+    /* ── Paper in wind — always running, very subtle ── */
+    if (paperRef.current) {
+      const t = now / 1000; // wall-clock seconds (not canvas clock, so no reset artifacts)
+      // Gentle X tilt: ±2.5°, slow wave
+      paperRef.current.rotation.x = Math.sin(t * 0.35) * 0.044;
+      // Slight Z twist: ±1.2°, offset phase so it doesn't sync with X
+      paperRef.current.rotation.z = Math.sin(t * 0.22 + 1.8) * 0.021;
+    }
   });
 
-  const onInteract = () => { lastInteractMs.current = performance.now(); };
+  const onInteract = () => { lastInteract.current = performance.now(); };
 
   return (
     <>
       <AutoCamera aspectRatio={aspectRatio} />
-      <Suspense fallback={null}>
-        <ArtworkMesh
-          colorURL={colorURL}
-          depthURL={depthURL}
-          displacementScale={displacementScale}
-          aspectRatio={aspectRatio}
-        />
-        <SceneReady onReady={onReady} />
-      </Suspense>
+
+      {/* pivot: auto-spins on Y */}
+      <group ref={pivotRef}>
+        {/* paper: gentle tilt + twist */}
+        <group ref={paperRef}>
+          <Suspense fallback={null}>
+            <ArtworkMesh
+              colorURL={colorURL}
+              depthURL={depthURL}
+              displacementScale={displacementScale}
+              aspectRatio={aspectRatio}
+            />
+            <SceneReady onReady={onReady} />
+          </Suspense>
+        </group>
+      </group>
+
       <OrbitControls
-        ref={controlsRef}
-        autoRotate
-        autoRotateSpeed={AUTO_ROTATE_SPEED}
         enablePan
         enableZoom
         enableRotate
@@ -119,11 +138,7 @@ function Scene({ colorURL, depthURL, displacementScale, aspectRatio, onReady }) 
 export default function Artwork3DViewer({ colorURL, depthURL, displacementScale, aspectRatio, onReady }) {
   return (
     <div className="absolute inset-0" style={{ background: '#0d0d0d' }}>
-      {/*
-        key=colorURL forces the Canvas to fully remount whenever the artwork
-        changes, giving a fresh clock and a fresh OrbitControls state so every
-        artwork starts in the same front-facing, upright orientation.
-      */}
+      {/* key=colorURL → fresh canvas + fresh clock for every artwork */}
       <Canvas
         key={colorURL}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.NoToneMapping, outputColorSpace: THREE.SRGBColorSpace }}
