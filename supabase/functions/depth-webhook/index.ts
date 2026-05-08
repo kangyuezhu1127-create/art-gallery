@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
     if (payload.status === 'failed') {
       await dbUpdate(SUPABASE_URL, SERVICE_KEY, artworkId, {
-        depth_status: `生成失败：${payload.error ?? 'Replicate 处理失败'}`,
+        depth_status: `Generation failed: ${payload.error ?? 'Replicate processing failed'}`,
       });
       return new Response('ok');
     }
@@ -64,13 +64,13 @@ Deno.serve(async (req) => {
 
     await dbUpdate(SUPABASE_URL, SERVICE_KEY, artworkId, {
       depth_map_url: depthMapUrl,
-      depth_status: '完成',
+      depth_status: 'Complete',
     });
 
     return new Response('ok');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await dbUpdate(SUPABASE_URL, SERVICE_KEY, artworkId, { depth_status: `生成失败：${msg}` }).catch(() => {});
+    await dbUpdate(SUPABASE_URL, SERVICE_KEY, artworkId, { depth_status: `Generation failed: ${msg}` }).catch(() => {});
     return new Response(msg, { status: 500 });
   }
 });

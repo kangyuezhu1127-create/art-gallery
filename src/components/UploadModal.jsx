@@ -26,7 +26,7 @@ function startDepthGeneration(artworkId, previewURL, onUpdate) {
     const worker = new DepthWorker();
 
     const timeout = setTimeout(() => {
-      onUpdate(artworkId, { depthStatus: '超时，请重试' }, false);
+      onUpdate(artworkId, { depthStatus: 'Timeout — please retry' }, false);
       worker.terminate();
     }, 5 * 60 * 1000);
 
@@ -41,21 +41,21 @@ function startDepthGeneration(artworkId, previewURL, onUpdate) {
           const depthDataURL = depthInfoToDataURL(depthInfo);
           const depthBlob = dataURLtoBlob(depthDataURL);
           const depthMapURL = await uploadFile(`${artworkId}/depth.png`, depthBlob, 'image/png');
-          onUpdate(artworkId, { depthMapURL, depthStatus: '完成' }, true);
+          onUpdate(artworkId, { depthMapURL, depthStatus: 'Complete' }, true);
         } catch (err) {
-          onUpdate(artworkId, { depthStatus: `上传失败：${err.message}` }, false);
+          onUpdate(artworkId, { depthStatus: `Upload failed: ${err.message}` }, false);
         }
         worker.terminate();
       } else if (type === 'error') {
         clearTimeout(timeout);
-        onUpdate(artworkId, { depthStatus: `生成失败：${message}` }, false);
+        onUpdate(artworkId, { depthStatus: `Generation failed: ${message}` }, false);
         worker.terminate();
       }
     });
 
     worker.addEventListener('error', (err) => {
       clearTimeout(timeout);
-      onUpdate(artworkId, { depthStatus: `Worker 错误：${err.message}` }, false);
+      onUpdate(artworkId, { depthStatus: `Worker error: ${err.message}` }, false);
       worker.terminate();
     });
 
@@ -127,7 +127,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
     if (!file || !previewURL || !title) return;
 
     setIsProcessing(true);
-    setUploadStatus('上传图片中...');
+    setUploadStatus('Uploading image…');
 
     try {
       const uploadBlob = processedBlobRef.current
@@ -142,7 +142,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
 
       const originalURL = await uploadFile(`${id}/original.${ext}`, uploadBlob, uploadMime);
 
-      setUploadStatus('保存到数据库...');
+      setUploadStatus('Saving to database…');
       const uploaderName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || '';
       const artwork = await insertArtwork({ id, title, artist, year, description, originalURL, aspectRatio, userId: user.id, uploaderName });
 
@@ -152,7 +152,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
       startDepthGeneration(id, previewURL, onUpdate);
 
     } catch (err) {
-      setUploadStatus(`错误：${err.message}`);
+      setUploadStatus(`Error: ${err.message}`);
       setIsProcessing(false);
     }
   };
@@ -161,7 +161,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">上传作品</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Upload Artwork</h2>
           {!isProcessing && (
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">✕</button>
           )}
@@ -191,15 +191,15 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
                 />
                 {bgRemoved && (
                   <span className="absolute top-1.5 right-1.5 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                    已抠图
+                    BG Removed
                   </span>
                 )}
               </div>
             ) : (
               <div className="text-gray-400 space-y-2">
                 <div className="text-4xl">🖼️</div>
-                <p className="text-sm">拖拽图片到此处，或点击选择</p>
-                <p className="text-xs">支持 JPG、PNG、WebP</p>
+                <p className="text-sm">Drag image here, or click to select</p>
+                <p className="text-xs">JPG, PNG, WebP supported</p>
               </div>
             )}
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
@@ -219,7 +219,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
                   {bgRemoving ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                      <span>抠图中（首次需下载模型）...</span>
+                      <span>Removing background (downloading model on first use)…</span>
                     </>
                   ) : (
                     <>
@@ -229,7 +229,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
                         <path d="M2.5 9h19" />
                         <path d="M22 12l-4 4 4 4" />
                       </svg>
-                      <span>AI 去除背景</span>
+                      <span>Remove Background (AI)</span>
                     </>
                   )}
                 </button>
@@ -243,7 +243,7 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                     <path d="M3 3v5h5" />
                   </svg>
-                  <span>恢复原图</span>
+                  <span>Restore Original</span>
                 </button>
               )}
             </div>
@@ -251,16 +251,16 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
 
           <div className="space-y-3">
             <input required value={title} onChange={(e) => setTitle(e.target.value)}
-              placeholder="作品标题 *"
+              placeholder="Artwork Title *"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-900 transition-colors" />
             <input value={artist} onChange={(e) => setArtist(e.target.value)}
-              placeholder="艺术家姓名"
+              placeholder="Artist Name"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-900 transition-colors" />
             <input value={year} onChange={(e) => setYear(e.target.value)}
-              placeholder="创作年份"
+              placeholder="Year"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-900 transition-colors" />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="作品描述" rows={3}
+              placeholder="Description" rows={3}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-900 transition-colors resize-none" />
           </div>
 
@@ -272,11 +272,11 @@ export default function UploadModal({ onClose, onAdd, onUpdate }) {
           ) : (
             <button type="submit" disabled={!file || !title}
               className="w-full py-3 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-              上传并生成 3D
+              Upload & Generate 3D
             </button>
           )}
           <p className="text-xs text-gray-400 text-center">
-            首次生成会下载约 50MB AI 模型，之后浏览器缓存，速度很快
+            First generation downloads ~50MB AI model, then cached for fast use
           </p>
         </form>
       </div>

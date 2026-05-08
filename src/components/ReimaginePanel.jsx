@@ -100,18 +100,18 @@ export default function ReimaginePanel({ artwork }) {
       <button
         onClick={() => status === 'ready' && setOpen(true)}
         style={{ ...btnStyle, position: 'absolute', top: '0.9rem', right: '1rem', zIndex: 20 }}
-        title={status === 'loading' ? `生成中… ${elapsed}s` : status === 'ready' ? '查看 AI 重想象版' : status === 'error' ? errMsg : ''}
+        title={status === 'loading' ? `Reimagining… ${elapsed}s` : status === 'ready' ? 'View AI Reimagine' : status === 'error' ? errMsg : ''}
       >
         {status === 'loading' ? (
           <>
             <span style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid #666',
               borderTopColor: 'transparent', animation: 'reimagineSpin 0.9s linear infinite', flexShrink: 0 }} />
-            AI 重想象 {elapsed}s
+            Reimagining… {elapsed}s
           </>
         ) : status === 'ready' ? (
-          <>✨ AI 重想象</>
+          <>✨ AI Reimagine</>
         ) : status === 'error' ? (
-          <>⚠ 生成失败</>
+          <>⚠ Generation Failed</>
         ) : null}
       </button>
 
@@ -175,7 +175,7 @@ export default function ReimaginePanel({ artwork }) {
           {/* Caption */}
           <p style={{ marginTop: '1.2rem', fontSize: '0.68rem', color: '#444',
             letterSpacing: '0.1em', textAlign: 'center', maxWidth: 500, lineHeight: 1.6 }}>
-            AI 根据原作构图生成的真实场景重想象
+            AI-generated real-world scene preserving the original composition
           </p>
         </div>
       )}
@@ -187,7 +187,7 @@ export default function ReimaginePanel({ artwork }) {
           borderRadius: 8, padding: '0.7rem 0.9rem', maxWidth: 240,
           fontSize: '0.65rem', color: '#c05050', lineHeight: 1.5 }}>
           {errMsg.includes('not configured') ? (
-            <>需配置 FAL_KEY，详见 fal.ai</>
+            <>FAL_KEY not configured — see fal.ai</>
           ) : errMsg.slice(0, 120)}
           <button onClick={() => {
             startedId.current = null;
@@ -197,7 +197,7 @@ export default function ReimaginePanel({ artwork }) {
           }} style={{ display: 'block', marginTop: '0.5rem', background: 'none',
             border: '1px solid #555', borderRadius: 4, color: '#888',
             fontSize: '0.6rem', padding: '0.2rem 0.5rem', cursor: 'pointer' }}>
-            重试
+            Retry
           </button>
         </div>
       )}

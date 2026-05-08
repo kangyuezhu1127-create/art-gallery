@@ -10,7 +10,7 @@ self.addEventListener('message', async (e) => {
 
   try {
     if (!pipelineFn) {
-      self.postMessage({ type: 'progress', message: '加载 AI 库...' });
+      self.postMessage({ type: 'progress', message: 'Loading AI libraries…' });
       const { pipeline, env } = await import(
         'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js'
       );
@@ -20,7 +20,7 @@ self.addEventListener('message', async (e) => {
     }
 
     if (!depthEstimator) {
-      self.postMessage({ type: 'progress', message: '首次使用：下载模型（约 50MB，仅一次）...' });
+      self.postMessage({ type: 'progress', message: 'First use: downloading model (~50MB, once only)…' });
       depthEstimator = await pipelineFn(
         'depth-estimation',
         'Xenova/depth-anything-small-hf',
@@ -28,16 +28,16 @@ self.addEventListener('message', async (e) => {
           progress_callback: (p) => {
             if (p.status === 'downloading' && p.total) {
               const pct = Math.round((p.loaded / p.total) * 100);
-              self.postMessage({ type: 'progress', message: `下载模型：${pct}%` });
+              self.postMessage({ type: 'progress', message: `Downloading model: ${pct}%` });
             } else if (p.status === 'loading') {
-              self.postMessage({ type: 'progress', message: '加载模型到内存...' });
+              self.postMessage({ type: 'progress', message: 'Loading model into memory…' });
             }
           },
         }
       );
     }
 
-    self.postMessage({ type: 'progress', message: '正在推理深度图（约 10-30 秒）...' });
+    self.postMessage({ type: 'progress', message: 'Generating depth map (~10–30 seconds)…' });
 
     const result = await depthEstimator(imageDataURL);
     const depth = result.depth;

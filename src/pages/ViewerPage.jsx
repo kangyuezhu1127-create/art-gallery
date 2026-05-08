@@ -52,9 +52,9 @@ export default function ViewerPage({ artworks, onUpdate }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
         <div className="text-center">
-          <p className="text-lg mb-4">找不到作品</p>
+          <p className="text-lg mb-4">Artwork not found</p>
           <button onClick={() => navigate('/gallery')} className="px-4 py-2 bg-white text-gray-900 rounded-lg">
-            返回画廊
+            Back to Gallery
           </button>
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
     <div className="h-screen bg-[#0d0d0d] flex flex-col overflow-hidden">
       <Helmet>
         <title>{artwork.title} — Depth Gallery</title>
-        <meta name="description" content={seoDescription || `${artwork.title} 的 3D 立体展示`} />
+        <meta name="description" content={seoDescription || `${artwork.title} — 3D depth viewer`} />
         <meta property="og:title" content={`${artwork.title} — Depth Gallery`} />
         <meta property="og:description" content={seoDescription} />
         <meta property="og:image" content={artwork.originalURL} />
@@ -78,7 +78,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
       <div className="flex items-center justify-between px-6 py-4 text-white z-10">
         <button onClick={() => navigate('/gallery')}
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
-          ← 返回画廊
+          ← Back to Gallery
         </button>
         <div className="text-center">
           <h1 className="font-medium text-white">{artwork.title}</h1>
@@ -105,15 +105,15 @@ export default function ViewerPage({ artworks, onUpdate }) {
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-4">
             <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-300">{artwork.depthStatus || '正在生成 3D...'}</p>
-            <p className="text-xs text-gray-500">首次使用需下载约 50MB AI 模型</p>
+            <p className="text-gray-300">{artwork.depthStatus || 'Generating 3D…'}</p>
+            <p className="text-xs text-gray-500">First use requires downloading ~50MB AI model</p>
           </div>
         )}
 
         {has3D && (
           <>
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-2xl px-6 py-4 text-white flex items-center gap-4 min-w-64">
-              <span className="text-xs text-gray-400 whitespace-nowrap">景深强度</span>
+              <span className="text-xs text-gray-400 whitespace-nowrap">Depth</span>
               <input
                 type="range" min="0" max="0.8" step="0.01"
                 value={displacementScale}
@@ -126,7 +126,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
               <span className="text-xs text-gray-300 w-8 text-right">{Math.round(displacementScale * 100)}</span>
             </div>
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur rounded-full px-4 py-1.5 text-xs text-gray-300 pointer-events-none">
-              拖拽旋转 · 滚轮缩放 · 右键平移
+              Drag to rotate · Scroll to zoom · Right-click to pan
             </div>
           </>
         )}

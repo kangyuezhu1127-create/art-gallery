@@ -182,7 +182,7 @@ export default function AccountPage({ artworks, onSave, onDelete }) {
               color: '#ccc', fontSize: '0.78rem', letterSpacing: '0.14em',
             }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '1rem', opacity: 0.4 }}>🖼</div>
-              还没有上传作品
+              No works uploaded yet
             </div>
           ) : (
             <div style={{
@@ -227,10 +227,10 @@ export default function AccountPage({ artworks, onSave, onDelete }) {
             boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
           }}>
             <p style={{ fontSize: '0.9rem', color: '#222', margin: '0 0 0.45rem', fontWeight: 400 }}>
-              确定要删除这件作品吗？
+              Are you sure you want to delete this artwork?
             </p>
             <p style={{ fontSize: '0.73rem', color: '#bbb', margin: '0 0 1.75rem' }}>
-              此操作不可撤销
+              This action cannot be undone
             </p>
             <div style={{ display: 'flex', gap: '0.7rem' }}>
               <button
@@ -242,7 +242,7 @@ export default function AccountPage({ artworks, onSave, onDelete }) {
                   fontSize: '0.78rem',
                 }}
               >
-                取消
+                Cancel
               </button>
               <button
                 onClick={handleDelete}
@@ -254,7 +254,7 @@ export default function AccountPage({ artworks, onSave, onDelete }) {
                   fontSize: '0.78rem', opacity: deleting ? 0.6 : 1,
                 }}
               >
-                {deleting ? '删除中…' : '确认删除'}
+                {deleting ? 'Deleting…' : 'Confirm Delete'}
               </button>
             </div>
           </div>

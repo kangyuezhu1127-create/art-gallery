@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     artworkId = body.artworkId;
     const imageDataURL: string = body.imageDataURL;
 
-    await dbUpdate(SUPABASE_URL, SERVICE_KEY, artworkId, { depth_status: 'AI 服务处理中...' });
+    await dbUpdate(SUPABASE_URL, SERVICE_KEY, artworkId, { depth_status: 'AI processing…' });
 
     // Webhook URL — Replicate will POST here when prediction completes
     const webhookUrl = `${SUPABASE_URL}/functions/v1/depth-webhook?artwork_id=${artworkId}`;
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (artworkId) {
-      await dbUpdate(SUPABASE_URL, SERVICE_KEY, artworkId, { depth_status: `生成失败：${msg}` }).catch(() => {});
+      await dbUpdate(SUPABASE_URL, SERVICE_KEY, artworkId, { depth_status: `Generation failed: ${msg}` }).catch(() => {});
     }
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,

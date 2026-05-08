@@ -29,8 +29,8 @@ export default function ArtworkCard({ artwork, onEdit, onDelete }) {
 
   const has3D = !!artwork.depthMapURL;
   const isError =
-    artwork.depthStatus?.startsWith('生成失败') ||
-    artwork.depthStatus?.startsWith('超时') ||
+    artwork.depthStatus?.startsWith('Generation failed') ||
+    artwork.depthStatus?.startsWith('Timeout') ||
     artwork.depthStatus?.startsWith('Worker');
   const isOwner = user && user.id === artwork.userId;
 
@@ -51,7 +51,7 @@ export default function ArtworkCard({ artwork, onEdit, onDelete }) {
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2">
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             <p className="text-white text-xs text-center px-4 leading-tight">
-              {artwork.depthStatus || '生成中...'}
+              {artwork.depthStatus || 'Generating…'}
             </p>
           </div>
         )}
@@ -65,7 +65,7 @@ export default function ArtworkCard({ artwork, onEdit, onDelete }) {
         {has3D && (
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
             <span className="bg-white text-gray-900 text-sm font-medium px-5 py-2 rounded-full shadow-lg">
-              点击查看 3D →
+              View in 3D →
             </span>
           </div>
         )}
@@ -84,7 +84,7 @@ export default function ArtworkCard({ artwork, onEdit, onDelete }) {
                 onClick={() => navigate(`/artwork/${artwork.id}`)}
                 className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-colors"
               >
-                3D 查看
+                View 3D
               </button>
             )}
             {isOwner && !confirming && (
@@ -107,18 +107,18 @@ export default function ArtworkCard({ artwork, onEdit, onDelete }) {
             )}
             {isOwner && confirming && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-500 whitespace-nowrap">确认删除？</span>
+                <span className="text-xs text-gray-500 whitespace-nowrap">Confirm delete?</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); setConfirming(false); }}
                   className="text-xs px-2.5 py-1.5 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  取消
+                  Cancel
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete(artwork.id); }}
                   className="text-xs px-2.5 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
-                  删除
+                  Delete
                 </button>
               </div>
             )}

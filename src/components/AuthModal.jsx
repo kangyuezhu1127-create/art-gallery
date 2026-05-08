@@ -28,14 +28,14 @@ export default function AuthModal({ onClose }) {
           options: { data: { display_name: displayName || email.split('@')[0] } },
         });
         if (error) throw error;
-        setSuccess('注册成功！请检查邮箱完成验证，然后登录。');
+        setSuccess('Account created! Check your email to verify, then log in.');
         setTab('login');
       }
     } catch (err) {
       const msg = {
-        'Invalid login credentials': '邮箱或密码错误',
-        'User already registered': '该邮箱已注册，请直接登录',
-        'Password should be at least 6 characters': '密码至少 6 位',
+        'Invalid login credentials': 'Invalid email or password',
+        'User already registered': 'Email already registered — please log in',
+        'Password should be at least 6 characters': 'Password must be at least 6 characters',
       }[err.message] || err.message;
       setError(msg);
     } finally {
@@ -54,7 +54,7 @@ export default function AuthModal({ onClose }) {
                 tab === 'login' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400'
               }`}
             >
-              登录
+              Log In
             </button>
             <button
               onClick={() => { setTab('register'); setError(''); }}
@@ -62,7 +62,7 @@ export default function AuthModal({ onClose }) {
                 tab === 'register' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400'
               }`}
             >
-              注册
+              Sign Up
             </button>
           </div>
           <button
@@ -79,7 +79,7 @@ export default function AuthModal({ onClose }) {
               required
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="你的名字"
+              placeholder="Your name"
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-900 transition-colors"
             />
           )}
@@ -88,7 +88,7 @@ export default function AuthModal({ onClose }) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="邮箱"
+            placeholder="Email"
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-900 transition-colors"
           />
           <input
@@ -96,7 +96,7 @@ export default function AuthModal({ onClose }) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="密码（至少 6 位）"
+            placeholder="Password (min. 6 characters)"
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-gray-900 transition-colors"
           />
 
@@ -108,7 +108,7 @@ export default function AuthModal({ onClose }) {
             disabled={loading}
             className="w-full py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors"
           >
-            {loading ? '处理中...' : tab === 'login' ? '登录' : '注册'}
+            {loading ? 'Processing…' : tab === 'login' ? 'Log In' : 'Sign Up'}
           </button>
         </form>
       </div>
