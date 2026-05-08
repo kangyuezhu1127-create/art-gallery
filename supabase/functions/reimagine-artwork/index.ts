@@ -75,9 +75,7 @@ async function storeImage(
   supabaseUrl: string, serviceKey: string,
   b64: string
 ): Promise<string> {
-  const binary = atob(b64);
-  const bytes  = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
   const path = `reimagined/${crypto.randomUUID()}.png`;
   const res  = await fetch(`${supabaseUrl}/storage/v1/object/artworks/${path}`, {
@@ -118,8 +116,8 @@ Deno.serve(async (req) => {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1800,
+        model: 'claude-haiku-4-5-20251001',  // Haiku: ~8s vs Sonnet ~25s — keeps total under 60s
+        max_tokens: 1200,
         messages: [{
           role: 'user',
           content: [
@@ -153,7 +151,7 @@ Deno.serve(async (req) => {
         prompt:  imgPrompt,
         n:       1,
         size:    '1024x1024',
-        quality: 'high',
+        quality: 'medium',  // high ~60s+ → medium ~25s; fits inside Supabase 60s limit
       }),
     });
 
