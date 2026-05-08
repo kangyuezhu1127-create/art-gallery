@@ -403,7 +403,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
 
   return (
     <div
-      style={{ width: '100vw', height: '100vh', background: '#f0f0f0', position: 'relative', overflow: 'hidden', cursor: 'grab' }}
+      style={{ width: '100vw', height: '100vh', background: '#000', position: 'relative', overflow: 'hidden', cursor: 'grab' }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
