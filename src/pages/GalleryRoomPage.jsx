@@ -366,7 +366,11 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   const [showUpload, setShowUpload] = useState(false);
   const [showAuth,   setShowAuth]   = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [motionOn,   setMotionOn]   = useState(false);
+  const [joy,        setJoy]        = useState({ x: 0, y: 0 }); // -1..1 for visual
   const transitionRef = useRef(false);
+  const cursorRef     = useRef({ x: 0.5, y: 0.5 });
+  const motionRAF     = useRef(null);
 
   // track if user arrived from SelectionPage "UPLOAD" card
   const fromUploadCard = useRef(!!location.state?.openUpload);
@@ -395,6 +399,54 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       () => navigate(`/artwork/${artwork.id}`, { state: { fromGallery: true } }),
     );
   };
+
+  /* ─── Cursor-edge motion control ─── */
+  const edgeFactor = (v) => {
+    const D = 0.22; // dead-zone: 0–22% and 78–100% are active
+    if (v < D) return -(1 - v / D);
+    if (v > 1 - D) return (v - (1 - D)) / D;
+    return 0;
+  };
+
+  useEffect(() => {
+    if (!motionOn) { setJoy({ x: 0, y: 0 }); return; }
+    const onMove = (e) => {
+      cursorRef.current = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
+    };
+    window.addEventListener('mousemove', onMove);
+    let frame = 0;
+    const tick = () => {
+      if (!transitionRef.current && !dragging.current) {
+        const xf = edgeFactor(cursorRef.current.x);
+        const yf = edgeFactor(cursorRef.current.y);
+        if (xf !== 0) setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - xf * 0.007)));
+        if (yf !== 0) setTargetZ(z => Math.min(3.5, Math.max(minZ, z + yf * 0.065)));
+        if (++frame % 3 === 0) setJoy({ x: xf, y: yf });
+      }
+      motionRAF.current = requestAnimationFrame(tick);
+    };
+    motionRAF.current = requestAnimationFrame(tick);
+    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(motionRAF.current); };
+  }, [motionOn, minZ]);
+
+  /* ─── Gyroscope (mobile) ─── */
+  useEffect(() => {
+    if (!motionOn) return;
+    const handler = (e) => {
+      if (transitionRef.current) return;
+      const gx = Math.max(-35, Math.min(35, e.gamma ?? 0)) / 35;
+      const gy = Math.max(-25, Math.min(25, (e.beta ?? 45) - 45)) / 25;
+      const D = 0.15;
+      if (Math.abs(gx) > D) setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - gx * 0.012)));
+      if (Math.abs(gy) > D) setTargetZ(z => Math.min(3.5, Math.max(minZ, z + gy * 0.1)));
+    };
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(p => { if (p === 'granted') window.addEventListener('deviceorientation', handler); }).catch(() => {});
+    } else {
+      window.addEventListener('deviceorientation', handler);
+    }
+    return () => window.removeEventListener('deviceorientation', handler);
+  }, [motionOn, minZ]);
 
   // ── input handlers ──
   useEffect(() => {
@@ -507,12 +559,24 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         background: 'linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, transparent 100%)',
         pointerEvents: 'none',
       }}>
-        <button onClick={() => navigate('/enter')} style={{
-          pointerEvents: 'all', background: 'none', border: 'none', cursor: 'pointer',
-          color: '#666', fontSize: '0.72rem', letterSpacing: '0.14em', display: 'flex', alignItems: 'center', gap: '0.4rem',
-        }}>
-          ← DEPTH GALLERY
-        </button>
+        <div style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <button onClick={() => navigate('/enter')} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: '#666', fontSize: '0.72rem', letterSpacing: '0.14em', display: 'flex', alignItems: 'center', gap: '0.4rem',
+          }}>
+            ← DEPTH GALLERY
+          </button>
+          <button onClick={() => setMotionOn(m => !m)} style={{
+            background: motionOn ? 'rgba(0,0,0,0.12)' : 'none',
+            border: `1px solid ${motionOn ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.14)'}`,
+            borderRadius: 99, cursor: 'pointer',
+            color: motionOn ? '#333' : '#999',
+            fontSize: '0.58rem', letterSpacing: '0.1em',
+            padding: '0.26rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.3rem',
+          }}>
+            ✋ {motionOn ? 'MOTION ON' : 'MOTION'}
+          </button>
+        </div>
         <div style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
           {user && (
             <button
@@ -546,9 +610,57 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       <div style={{
         position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
         color: 'rgba(0,0,0,0.28)', fontSize: '0.62rem', letterSpacing: '0.13em', pointerEvents: 'none', whiteSpace: 'nowrap',
+        transition: 'opacity 0.3s',
       }}>
-        SCROLL ↑↓ TO WALK · SCROLL ←→ OR DRAG TO LOOK · CLICK ARTWORK TO VIEW IN 3D
+        {motionOn
+          ? '✋ MOVE CURSOR TO EDGE TO NAVIGATE · CLICK ARTWORK TO VIEW IN 3D'
+          : 'SCROLL ↑↓ TO WALK · SCROLL ←→ OR DRAG TO LOOK · CLICK ARTWORK TO VIEW IN 3D'}
       </div>
+
+      {/* Motion control visuals */}
+      {motionOn && (
+        <>
+          {/* Edge direction arrows */}
+          {[
+            { pos: { top: '3.5rem', left: '50%', transform: 'translateX(-50%)' }, arrow: '▲', factor: -joy.y },
+            { pos: { bottom: '3rem', left: '50%', transform: 'translateX(-50%)' }, arrow: '▼', factor: joy.y  },
+            { pos: { left: '0.5rem', top: '50%', transform: 'translateY(-50%)' }, arrow: '◀', factor: -joy.x },
+            { pos: { right: '0.5rem', top: '50%', transform: 'translateY(-50%)' }, arrow: '▶', factor: joy.x  },
+          ].map(({ pos, arrow, factor }) => (
+            <div key={arrow} style={{
+              position: 'absolute', ...pos,
+              fontSize: '1.1rem',
+              color: '#000',
+              opacity: Math.max(0.08, factor * 0.75),
+              pointerEvents: 'none', zIndex: 25,
+              textShadow: factor > 0.3 ? '0 0 10px rgba(0,0,0,0.4)' : 'none',
+              transition: 'opacity 0.08s',
+            }}>{arrow}</div>
+          ))}
+
+          {/* Joystick mini widget */}
+          <div style={{
+            position: 'absolute', bottom: '3.5rem', left: '1.5rem',
+            width: 48, height: 48, borderRadius: '50%',
+            border: '1px solid rgba(0,0,0,0.18)',
+            background: 'rgba(255,255,255,0.55)',
+            backdropFilter: 'blur(8px)',
+            pointerEvents: 'none', zIndex: 30,
+          }}>
+            <div style={{ position: 'absolute', left: '50%', top: '15%', bottom: '15%', width: 1, background: 'rgba(0,0,0,0.1)', transform: 'translateX(-50%)' }} />
+            <div style={{ position: 'absolute', top: '50%', left: '15%', right: '15%', height: 1, background: 'rgba(0,0,0,0.1)', transform: 'translateY(-50%)' }} />
+            <div style={{
+              position: 'absolute',
+              width: 10, height: 10, borderRadius: '50%',
+              background: (joy.x !== 0 || joy.y !== 0) ? '#c8a455' : 'rgba(0,0,0,0.3)',
+              boxShadow: (joy.x !== 0 || joy.y !== 0) ? '0 0 7px rgba(200,164,85,0.7)' : 'none',
+              left: `calc(50% + ${joy.x * 15}px - 5px)`,
+              top:  `calc(50% + ${joy.y * 15}px - 5px)`,
+              transition: 'left 0.07s, top 0.07s, background 0.1s',
+            }} />
+          </div>
+        </>
+      )}
 
       {/* nav arrows */}
       {[
