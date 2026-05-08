@@ -57,21 +57,16 @@ function loadTextureSafe(url, onLoad, onError) {
   img.crossOrigin = 'anonymous';
   img.onload = () => {
     try {
-      let src = img;
-      // Resize if image exceeds WebGL MAX_TEXTURE_SIZE
-      if (img.naturalWidth > MAX_TEX || img.naturalHeight > MAX_TEX) {
-        const scale = Math.min(MAX_TEX / img.naturalWidth, MAX_TEX / img.naturalHeight);
-        const canvas = document.createElement('canvas');
-        canvas.width  = Math.round(img.naturalWidth  * scale);
-        canvas.height = Math.round(img.naturalHeight * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        src = canvas;
-      }
-      const tex = src instanceof HTMLCanvasElement
-        ? new THREE.CanvasTexture(src)
-        : new THREE.Texture(img);
-      tex.colorSpace  = THREE.SRGBColorSpace;
-      tex.needsUpdate = true;
+      // Always route through canvas — avoids THREE.Texture(img) quirks
+      // and automatically handles oversized images for all GPU limits
+      const { naturalWidth: iw, naturalHeight: ih } = img;
+      const scale = Math.min(1, MAX_TEX / iw, MAX_TEX / ih);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(iw * scale);
+      canvas.height = Math.round(ih * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
       onLoad(tex);
     } catch (e) { onError(e); }
   };
@@ -94,10 +89,11 @@ function ArtImage({ url, fw, fh }) {
       url,
       (tex) => { if (mountedRef.current) setTexture(tex); },
       ()    => {
-        // auto-retry up to 3 times with increasing delay
-        timer = setTimeout(() => {
-          if (mountedRef.current) setRetries(r => r + 1);
-        }, 1500 * (retries + 1));
+        if (retries < 3) {
+          timer = setTimeout(() => {
+            if (mountedRef.current) setRetries(r => r + 1);
+          }, 1500 * (retries + 1));
+        }
       }
     );
     return () => {
