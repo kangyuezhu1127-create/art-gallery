@@ -5,6 +5,8 @@ import Artwork3DViewer from '../components/Artwork3DViewer';
 import ReimaginePanel from '../components/ReimaginePanel';
 import { useGalleryTransition } from '../contexts/TransitionContext';
 
+const FIXED_DEPTH = 0.25; // no slider — fixed depth for the 3D effect
+
 export default function ViewerPage({ artworks, onUpdate }) {
   const { id }      = useParams();
   const navigate    = useNavigate();
@@ -15,7 +17,8 @@ export default function ViewerPage({ artworks, onUpdate }) {
   const has3D       = !!artwork?.depthMapURL;
   const fromGallery = !!location.state?.fromGallery;
 
-  const [displacementScale, setDisplacementScale] = useState(fromGallery ? 0 : 0.25);
+  // Animate displacement 0 → FIXED_DEPTH on gallery entry; otherwise start at fixed value
+  const [displacementScale, setDisplacementScale] = useState(fromGallery ? 0 : FIXED_DEPTH);
   const animRef  = useRef(null);
   const firedRef = useRef(false);
 
@@ -24,7 +27,7 @@ export default function ViewerPage({ artworks, onUpdate }) {
     const run = (ts) => {
       if (!start) start = ts;
       const p = Math.min((ts - start) / 1400, 1);
-      setDisplacementScale((1 - Math.pow(1 - p, 3)) * 0.25);
+      setDisplacementScale((1 - Math.pow(1 - p, 3)) * FIXED_DEPTH);
       if (p < 1) animRef.current = requestAnimationFrame(run);
       else        animRef.current = null;
     };
@@ -91,8 +94,6 @@ export default function ViewerPage({ artworks, onUpdate }) {
 
       {/* Canvas area */}
       <div className="flex-1 relative min-h-0">
-        {/* AI Reimagine — auto-starts, shows ✨ button when ready */}
-        {has3D && <ReimaginePanel artwork={artwork} />}
 
         {has3D ? (
           <Artwork3DViewer
@@ -110,26 +111,15 @@ export default function ViewerPage({ artworks, onUpdate }) {
           </div>
         )}
 
+        {/* Hint */}
         {has3D && (
-          <>
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-2xl px-6 py-4 text-white flex items-center gap-4 min-w-64">
-              <span className="text-xs text-gray-400 whitespace-nowrap">Depth</span>
-              <input
-                type="range" min="0" max="0.8" step="0.01"
-                value={displacementScale}
-                onChange={(e) => {
-                  if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
-                  setDisplacementScale(parseFloat(e.target.value));
-                }}
-                className="flex-1 accent-white"
-              />
-              <span className="text-xs text-gray-300 w-8 text-right">{Math.round(displacementScale * 100)}</span>
-            </div>
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur rounded-full px-4 py-1.5 text-xs text-gray-300 pointer-events-none">
-              Drag to rotate · Scroll to zoom · Right-click to pan
-            </div>
-          </>
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur rounded-full px-4 py-1.5 text-xs text-gray-300 pointer-events-none">
+            Drag to rotate · Scroll to zoom · Right-click to pan
+          </div>
         )}
+
+        {/* AI Reimagine — user-triggered only, no auto API call */}
+        {has3D && <ReimaginePanel artwork={artwork} />}
       </div>
 
       {artwork.description && (
