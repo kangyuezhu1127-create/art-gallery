@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Artwork3DViewer from '../components/Artwork3DViewer';
-import SymbolPanel from '../components/SymbolPanel';
-import ExploreOverlay from '../components/ExploreOverlay';
+import ReimaginePanel from '../components/ReimaginePanel';
 import { useGalleryTransition } from '../contexts/TransitionContext';
 
 export default function ViewerPage({ artworks, onUpdate }) {
@@ -12,17 +11,14 @@ export default function ViewerPage({ artworks, onUpdate }) {
   const location    = useLocation();
   const { signalReady } = useGalleryTransition();
 
-  const artwork  = artworks.find((a) => a.id === id);
-  const has3D    = !!artwork?.depthMapURL;
+  const artwork     = artworks.find((a) => a.id === id);
+  const has3D       = !!artwork?.depthMapURL;
   const fromGallery = !!location.state?.fromGallery;
 
   const [displacementScale, setDisplacementScale] = useState(fromGallery ? 0 : 0.25);
-  const [exploreSymbols,    setExploreSymbols]    = useState(null); // null = closed
-  const [exploreStart,      setExploreStart]      = useState(0);
   const animRef  = useRef(null);
   const firedRef = useRef(false);
 
-  /* Animate displacement 0 → 0.25 with cubic ease-out */
   const animateDisplacement = useCallback(() => {
     let start = null;
     const run = (ts) => {
@@ -35,15 +31,13 @@ export default function ViewerPage({ artworks, onUpdate }) {
     animRef.current = requestAnimationFrame(run);
   }, []);
 
-  /* 3D scene ready → dismiss overlay, then reveal depth */
   const handleSceneReady = useCallback(() => {
     if (!fromGallery || firedRef.current) return;
     firedRef.current = true;
-    signalReady();                              // overlay fades out (0.78 s)
-    setTimeout(animateDisplacement, 220);       // depth emerges as overlay lifts
+    signalReady();
+    setTimeout(animateDisplacement, 220);
   }, [fromGallery, signalReady, animateDisplacement]);
 
-  /* Fallback: no 3D viewer (depth not ready), just dismiss */
   useEffect(() => {
     if (!fromGallery || has3D) return;
     const t = setTimeout(() => signalReady(), 350);
@@ -80,8 +74,10 @@ export default function ViewerPage({ artworks, onUpdate }) {
         <meta property="og:type" content="article" />
       </Helmet>
 
+      {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 text-white z-10">
-        <button onClick={() => navigate('/gallery')} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+        <button onClick={() => navigate('/gallery')}
+          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
           ← 返回画廊
         </button>
         <div className="text-center">
@@ -93,33 +89,19 @@ export default function ViewerPage({ artworks, onUpdate }) {
         <div className="w-24" />
       </div>
 
+      {/* Canvas area */}
       <div className="flex-1 relative min-h-0">
-        {has3D && (
-          <SymbolPanel
-            artwork={artwork}
-            onExplore={(syms, idx) => { setExploreSymbols(syms); setExploreStart(idx); }}
-          />
-        )}
-        {exploreSymbols && (
-          <ExploreOverlay
-            symbols={exploreSymbols}
-            startIndex={exploreStart}
-            onClose={() => setExploreSymbols(null)}
-          />
-        )}
+        {/* AI Reimagine — auto-starts, shows ✨ button when ready */}
+        {has3D && <ReimaginePanel artwork={artwork} />}
+
         {has3D ? (
-          <div style={{ position: 'absolute', inset: 0,
-            opacity: exploreSymbols ? 0.08 : 1,
-            transition: 'opacity 0.6s ease',
-            pointerEvents: exploreSymbols ? 'none' : 'auto' }}>
-            <Artwork3DViewer
-              colorURL={artwork.originalURL}
-              depthURL={artwork.depthMapURL}
-              displacementScale={displacementScale}
-              aspectRatio={artwork.aspectRatio}
-              onReady={handleSceneReady}
-            />
-          </div>
+          <Artwork3DViewer
+            colorURL={artwork.originalURL}
+            depthURL={artwork.depthMapURL}
+            displacementScale={displacementScale}
+            aspectRatio={artwork.aspectRatio}
+            onReady={handleSceneReady}
+          />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-4">
             <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin" />
