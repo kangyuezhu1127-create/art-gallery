@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <!-- 5 hollow petals fanning out from center, each rotated 72° -->
-  <g transform="translate(50 50)" stroke="#E8909B" stroke-width="5" stroke-linejoin="round" fill="none">
-    <ellipse cx="0" cy="-22" rx="11" ry="18" />
-    <ellipse cx="0" cy="-22" rx="11" ry="18" transform="rotate(72)" />
-    <ellipse cx="0" cy="-22" rx="11" ry="18" transform="rotate(144)" />
-    <ellipse cx="0" cy="-22" rx="11" ry="18" transform="rotate(216)" />
-    <ellipse cx="0" cy="-22" rx="11" ry="18" transform="rotate(288)" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 5 round petals fanning out from center, each rotated 72° -->
+  <g transform="translate(50 50)" fill="#9333EA">
+    <circle cx="0" cy="-22" r="16" />
+    <circle cx="0" cy="-22" r="16" transform="rotate(72)" />
+    <circle cx="0" cy="-22" r="16" transform="rotate(144)" />
+    <circle cx="0" cy="-22" r="16" transform="rotate(216)" />
+    <circle cx="0" cy="-22" r="16" transform="rotate(288)" />
   </g>
-  <!-- tiny solid center -->
-  <circle cx="50" cy="50" r="4.5" fill="#E8909B" />
+  <!-- darker center -->
+  <circle cx="50" cy="50" r="9" fill="#581C87" />
 </svg>
