@@ -29,7 +29,7 @@ function Letters({
   rotatePerRow = -5,    // degrees per row
   letterX = 0.4,        // X scale (letter width)
   letterY = 0.78,       // Y scale (letter height)
-  weight = 700,         // font weight
+  weight = 400,         // font weight (thin, like the screenshot)
   waveAmplitude = 1.4,  // overall vertical wave amplitude
   waveFreq = 2.4,       // wave cycles per row
   pride = true,         // rainbow colors

@@ -65,11 +65,12 @@ export default function LandingPage() {
         {/* Main */}
         <main className="flex-1 flex flex-col justify-center max-w-[1100px]">
           <p
-            className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} font-black tracking-[0.18em] mb-4`}
+            className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} tracking-[0.18em] mb-4`}
             style={{
               fontSize: 'clamp(1.4rem, 2.4vw, 2.4rem)',
               color: '#F5C518',
-              fontVariationSettings: lang === 'en' ? "'opsz' 144, 'SOFT' 100, 'WONK' 1" : undefined,
+              fontWeight: lang === 'en' ? 600 : 700,
+              fontVariationSettings: lang === 'en' ? "'opsz' 144, 'SOFT' 0, 'WONK' 0" : undefined,
               textShadow: '0 1px 0 rgba(245,197,24,0.12), 0 0 24px rgba(245,197,24,0.18)',
             }}
           >
@@ -77,12 +78,12 @@ export default function LandingPage() {
           </p>
 
           <h1
-            className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} leading-[0.92] text-ink mb-6`}
+            className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} leading-[0.95] text-ink mb-6`}
             style={{
-              fontSize: 'clamp(4rem, 11vw, 11rem)',
-              fontWeight: 900,
-              fontVariationSettings: lang === 'en' ? "'opsz' 144, 'SOFT' 100, 'WONK' 1" : undefined,
-              letterSpacing: '-0.02em',
+              fontSize: 'clamp(3.6rem, 10vw, 10rem)',
+              fontWeight: lang === 'en' ? 700 : 900,
+              fontVariationSettings: lang === 'en' ? "'opsz' 144, 'SOFT' 0, 'WONK' 0" : undefined,
+              letterSpacing: '-0.015em',
             }}
           >
             {copy.title}
