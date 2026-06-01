@@ -72,20 +72,12 @@ export default function SiteNav({
     <>
       <nav className={`sticky top-0 z-40 ${navBg}`}>
         <div className="max-w-[1500px] mx-auto px-8 h-20 flex items-center justify-between gap-6">
-          {/* Brand */}
-          <Link to="/" className="flex items-center gap-3 shrink-0 group">
-            <span
-              className="w-[9px] h-[9px] rounded-full transition-transform group-hover:scale-150"
-              style={{ backgroundColor: '#7DD3FC' }}
-            />
-            <div className="leading-tight">
-              <div className={`font-display font-black tracking-tight ${isDark ? 'text-white' : 'text-ink'} text-[1.15rem]`}>
-                Depth Gallery
-              </div>
-              <div className={`text-[0.58rem] tracking-[0.32em] uppercase ${isDark ? 'text-white/45' : 'text-ink/45'} -mt-0.5 hidden sm:block`}>
-                Unveiled · The Art
-              </div>
-            </div>
+          {/* Brand — single black wordmark serving as Home link */}
+          <Link
+            to="/"
+            className="shrink-0 font-display font-black uppercase tracking-[0.22em] text-ink text-[0.95rem] hover:opacity-70 transition-opacity"
+          >
+            Unveil&nbsp;The&nbsp;Art
           </Link>
 
           {/* Module nav — pure typography, no divider lines */}
