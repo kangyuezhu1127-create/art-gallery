@@ -81,8 +81,8 @@ export default function ViewerPage({ artworks, onUpdate }) {
       {/* Unified site nav (dark variant) */}
       <SiteNav variant="dark" />
 
-      {/* Artwork title strip below nav */}
-      <div className="flex items-center justify-between px-6 py-3 text-white z-10 border-b border-white/10 bg-black/40 backdrop-blur-sm">
+      {/* Artwork title strip below nav — translucent block, no line */}
+      <div className="flex items-center justify-between px-6 py-3 text-white z-10 bg-white/8 backdrop-blur-sm">
         <button onClick={() => navigate('/gallery')}
           className="flex items-center gap-2 text-xs tracking-[0.18em] uppercase text-white/55 hover:text-white transition-colors">
           ← Back to Gallery

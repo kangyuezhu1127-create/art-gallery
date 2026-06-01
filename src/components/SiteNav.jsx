@@ -88,27 +88,25 @@ export default function SiteNav({
             </div>
           </Link>
 
-          {/* Module nav — editorial style, full-height dividers */}
-          <div className={`hidden md:flex items-stretch h-full flex-1 justify-center ${isDark ? 'border-x border-white/10' : 'border-x border-ink/10'} mx-4`}>
-            {modules.map((m, i) => (
+          {/* Module nav — pure typography, no divider lines */}
+          <div className="hidden md:flex items-center h-full flex-1 justify-center gap-2">
+            {modules.map((m) => (
               <NavLink
                 key={m.to}
                 to={m.to}
                 className={({ isActive }) =>
-                  `relative flex items-center justify-center px-8 text-[0.78rem] tracking-[0.28em] uppercase font-bold transition-all ${
+                  `relative flex items-center justify-center px-6 py-2 text-[0.78rem] tracking-[0.28em] uppercase font-bold transition-colors ${
                     isActive
-                      ? (isDark ? 'text-white' : 'text-ink')
-                      : (isDark ? 'text-white/55 hover:text-white' : 'text-ink/55 hover:text-ink')
-                  } ${i !== 0 ? (isDark ? 'border-l border-white/10' : 'border-l border-ink/10') : ''}`
+                      ? 'text-ink'
+                      : 'text-ink/45 hover:text-ink'
+                  }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     <span>{lang === 'zh' ? m.labelZh : m.label}</span>
                     {isActive && (
-                      <span
-                        className={`absolute left-0 right-0 bottom-0 h-[3px] ${isDark ? 'bg-white' : 'bg-ink'}`}
-                      />
+                      <span className="absolute left-1/2 -translate-x-1/2 bottom-1 w-[5px] h-[5px] rounded-full bg-ink" />
                     )}
                   </>
                 )}
