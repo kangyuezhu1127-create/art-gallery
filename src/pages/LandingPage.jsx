@@ -42,7 +42,7 @@ export default function LandingPage() {
         {/* Header */}
         <header className="flex justify-between items-center text-xs tracking-[0.18em] uppercase">
           <div className="flex items-center gap-3 font-semibold">
-            <span className="w-2 h-2 bg-papercut rounded-full" />
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#7DD3FC' }} />
             <span>{copy.brand}</span>
           </div>
           <div className="flex items-center gap-3 text-ink/60 bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
@@ -68,10 +68,9 @@ export default function LandingPage() {
             className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} tracking-[0.18em] mb-4`}
             style={{
               fontSize: 'clamp(1.4rem, 2.4vw, 2.4rem)',
-              color: '#F5C518',
+              color: '#404040',
               fontWeight: lang === 'en' ? 600 : 700,
               fontVariationSettings: lang === 'en' ? "'opsz' 144, 'SOFT' 0, 'WONK' 0" : undefined,
-              textShadow: '0 1px 0 rgba(245,197,24,0.12), 0 0 24px rgba(245,197,24,0.18)',
             }}
           >
             {copy.eyebrow}

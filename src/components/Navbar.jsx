@@ -19,7 +19,10 @@ export default function Navbar({ onUpload, onLogin }) {
     <nav className="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-ink/10">
       <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 group">
-          <span className="w-2 h-2 bg-papercut rounded-full transition-transform group-hover:scale-150" />
+          <span
+            className="w-2 h-2 rounded-full transition-transform group-hover:scale-150"
+            style={{ backgroundColor: '#7DD3FC' }}
+          />
           <span className="font-display font-bold tracking-tight text-ink text-[1.05rem]">
             Depth Gallery
           </span>
