@@ -63,8 +63,8 @@ const COLOR = {
   ink:         '#1a1a1a',
 };
 
-const NOTCH_PEAK = 72;   // % — V notch apex (deeper = more letter visible)
-const FLAP_HEIGHT = 72;  // % — matches notch so closed flap covers V perfectly
+const NOTCH_PEAK = 80;   // % — V notch apex (deeper = more letter visible)
+const FLAP_HEIGHT = 80;  // % — matches notch so closed flap covers V perfectly
 
 export default function EnvelopeReveal({ lang = 'en' }) {
   const sectionRef = useRef(null);
@@ -78,8 +78,8 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
 
-  // Letter Y: from 70% (hidden inside) to -22% (top sticks above the V)
-  const letterY = 70 - letterRise * 92;
+  // Letter Y: from 70% (hidden inside) to -65% (signature rises well above the V)
+  const letterY = 70 - letterRise * 135;
 
   const isEn = lang === 'en';
 
@@ -125,17 +125,17 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               <div
                 style={{
                   position: 'absolute',
-                  left: '6%',
-                  right: '6%',
-                  top: '6%',
-                  bottom: '6%',
+                  left: '10%',
+                  right: '10%',
+                  top: '8%',
+                  bottom: '8%',
                   background: COLOR.card,
                   borderRadius: '3px',
                   boxShadow:
                     '0 8px 18px -4px rgba(0,0,0,0.14), 0 2px 4px rgba(0,0,0,0.06)',
                   transform: `translateY(${letterY}%)`,
                   transition: 'transform 0.05s linear',
-                  padding: 'clamp(0.9rem, 2vw, 1.6rem)',
+                  padding: 'clamp(0.8rem, 1.8vw, 1.4rem)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
@@ -150,43 +150,35 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   </p>
 
                   <p
-                    className="font-editorial text-ink leading-[1.4]"
+                    className="font-editorial text-ink leading-[1.45]"
                     style={{
-                      fontSize: 'clamp(0.72rem, 1.05vw, 0.98rem)',
+                      fontSize: 'clamp(0.7rem, 1vw, 0.92rem)',
                       fontWeight: 500,
                       letterSpacing: '-0.005em',
                     }}
                   >
                     {isEn ? (
                       <>
-                        This gallery began as an invitation — to the keepers of
-                        traditional Chinese paper craft, those who fold, who cut,
-                        who hold a steady blade against thin paper.
+                        An invitation — to those who fold, who cut, who hold a steady blade against thin paper.
                         <br /><br />
                         <span style={{ color: '#555' }}>
-                          Here, every uploaded work is given a body — depth,
-                          weight, and the room to be seen. May the old enter
-                          the new, and the quiet hands behind the cuts be
-                          unveiled.
+                          Here, every work is given depth, weight, and the room to be seen.
                         </span>
                       </>
                     ) : (
                       <>
-                        这是一封迟到的邀请信，写给所有
-                        仍然把传统中国纸艺留在生活里的人。
+                        这是写给所有把传统中国纸艺留在生活里的人。
                         <br /><br />
                         <span style={{ color: '#555' }}>
-                          在这里，每一件被上传的作品都将获得一具身体——
-                          深度、重量，以及被看见的空间。
-                          愿古老进入新的语境，
-                          让那些藏在剪痕背后的手，被一一揭开。
+                          在这里，每一件作品都将获得深度、重量，
+                          以及被看见的空间。
                         </span>
                       </>
                     )}
                   </p>
                 </div>
 
-                <div>
+                <div className="text-left">
                   <p
                     className="font-editorial text-ink/65"
                     style={{ fontSize: 'clamp(0.52rem, 0.78vw, 0.7rem)', letterSpacing: '0.02em' }}
@@ -196,12 +188,12 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   <p
                     className="font-editorial text-ink mt-0.5"
                     style={{
-                      fontSize: 'clamp(0.72rem, 1vw, 0.92rem)',
+                      fontSize: 'clamp(0.78rem, 1.05vw, 1rem)',
                       fontWeight: 700,
-                      letterSpacing: '0.06em',
+                      letterSpacing: '0.08em',
                     }}
                   >
-                    Unveilthearts
+                    jjdy
                   </p>
                 </div>
               </div>
