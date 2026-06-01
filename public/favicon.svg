@@ -1,12 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- 5 round petals fanning out from center, each rotated 72° -->
+  <!-- 5 round petals — bigger, pushed further from centre so there's
+       a small gap between adjacent petals -->
   <g transform="translate(50 50)" fill="#9333EA">
-    <circle cx="0" cy="-22" r="16" />
-    <circle cx="0" cy="-22" r="16" transform="rotate(72)" />
-    <circle cx="0" cy="-22" r="16" transform="rotate(144)" />
-    <circle cx="0" cy="-22" r="16" transform="rotate(216)" />
-    <circle cx="0" cy="-22" r="16" transform="rotate(288)" />
+    <circle cx="0" cy="-30" r="17" />
+    <circle cx="0" cy="-30" r="17" transform="rotate(72)" />
+    <circle cx="0" cy="-30" r="17" transform="rotate(144)" />
+    <circle cx="0" cy="-30" r="17" transform="rotate(216)" />
+    <circle cx="0" cy="-30" r="17" transform="rotate(288)" />
   </g>
-  <!-- hollow center -->
-  <circle cx="50" cy="50" r="9" fill="#ffffff" />
+  <!-- hollow white centre -->
+  <circle cx="50" cy="50" r="11" fill="#ffffff" />
 </svg>

@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * EnvelopeReveal — auto-opening letter envelope.
+ * EnvelopeReveal — scroll-driven letter envelope (bidirectional).
  *
  * Behaviour:
- *  - Section is a single viewport tall. User scrolls into it once.
- *  - As soon as the section is meaningfully visible (IntersectionObserver,
- *    40% threshold), a time-based animation runs to open the flap and
- *    rise the letter. The user is NOT forced to keep scrolling.
- *  - After the section, the user can scroll past freely.
+ *  - Section is 160vh tall with a sticky 100vh inner stage.
+ *  - useScrollProgress hook computes a 0→1 progress from the section's
+ *    position relative to the viewport.
+ *  - As user scrolls DOWN through the section, progress increases →
+ *    flap opens, letter rises.
+ *  - As user scrolls UP, progress decreases → flap closes, letter sinks.
+ *  - Naturally bidirectional: scrubbing back and forth reveals/re-hides.
  *
  * Visual structure (back-to-front):
  *   1. Envelope back body (rounded rect)
@@ -17,9 +19,38 @@ import { useEffect, useRef, useState } from 'react';
  *   4. Top flap — triangle hinged at envelope top
  *        front face : down-triangle (matches V notch when closed)
  *        back face  : UP-triangle (clipPath inverted) so when the flap
- *                     tips open we see an up-pointing triangle, like a
- *                     real envelope flap tucked behind.
+ *                     tips open we see an up-pointing triangle.
  */
+
+function useScrollProgress(ref) {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    if (!ref.current) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const el = ref.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      const scrolled = -rect.top;
+      const v = total > 0 ? scrolled / total : 0;
+      setP(Math.max(0, Math.min(1, v)));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', update);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [ref]);
+  return p;
+}
 
 const ENV_W = 'min(62vw, 620px)';
 const ENV_H = 'min(40vw, 400px)';
@@ -35,51 +66,14 @@ const COLOR = {
 const NOTCH_PEAK = 72;   // % — V notch apex (deeper = more letter visible)
 const FLAP_HEIGHT = 72;  // % — matches notch so closed flap covers V perfectly
 
-const ANIM_DURATION = 1800; // ms — auto-open animation length
-const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-
 export default function EnvelopeReveal({ lang = 'en' }) {
   const sectionRef = useRef(null);
-  const [progress, setProgress] = useState(0);
+  const progress   = useScrollProgress(sectionRef);
 
-  // Auto-trigger when the envelope is in view
-  useEffect(() => {
-    if (!sectionRef.current) return;
-    let raf;
-    let startTime = null;
-    let cancelled = false;
-    let triggered = false;
-
-    const animate = (now) => {
-      if (cancelled) return;
-      if (startTime == null) startTime = now;
-      const elapsed = now - startTime;
-      const p = Math.min(1, elapsed / ANIM_DURATION);
-      setProgress(easeOutCubic(p));
-      if (p < 1) raf = requestAnimationFrame(animate);
-    };
-
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !triggered) {
-          triggered = true;
-          raf = requestAnimationFrame(animate);
-        }
-      },
-      { threshold: 0.35 }
-    );
-    obs.observe(sectionRef.current);
-
-    return () => {
-      cancelled = true;
-      obs.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  // Timeline split: flap opens first, letter rises after
-  const flapOpen   = Math.min(1, progress / 0.55);
-  const letterRise = Math.max(0, Math.min(1, (progress - 0.35) / 0.65));
+  // Timeline split: flap opens first, letter rises after.
+  // Bounded against the section scroll, so reversing the scroll re-closes.
+  const flapOpen   = Math.min(1, Math.max(0, progress / 0.55));
+  const letterRise = Math.max(0, Math.min(1, (progress - 0.30) / 0.65));
 
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
@@ -92,12 +86,13 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   return (
     <section
       ref={sectionRef}
-      className="relative bg-paper py-[10vh]"
+      className="relative bg-paper"
+      style={{ height: '160vh' }}
     >
-      <div className="flex flex-col items-center px-4">
+      <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
         {/* Eyebrow */}
         <p
-          className="font-editorial text-[#404040] tracking-[0.32em] uppercase text-xs sm:text-sm mb-[6vh] text-center"
+          className="absolute top-[14vh] left-1/2 -translate-x-1/2 font-editorial text-[#404040] tracking-[0.32em] uppercase text-xs sm:text-sm text-center"
         >
           {isEn ? 'A letter to the makers' : '致 · 创作者的一封信'}
         </p>
