@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Button from '../components/ui/Button';
 import KineticTypeBackground from '../components/decorations/KineticType';
+import SiteNav from '../components/SiteNav';
 
 export default function LandingPage() {
   const [lang, setLang] = useState('en'); // default English
@@ -37,30 +38,13 @@ export default function LandingPage() {
       {/* Soft white overlay so foreground text reads cleanly */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/40 to-white/70 pointer-events-none" />
 
+      {/* Site nav at top */}
+      <div className="relative z-10">
+        <SiteNav variant="transparent" lang={lang} onLangChange={setLang} />
+      </div>
+
       {/* CONTENT */}
-      <div className="relative z-10 flex flex-col min-h-screen px-[6vw] py-10">
-        {/* Header */}
-        <header className="flex justify-between items-center text-xs tracking-[0.18em] uppercase">
-          <div className="flex items-center gap-3 font-semibold">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#7DD3FC' }} />
-            <span>{copy.brand}</span>
-          </div>
-          <div className="flex items-center gap-3 text-ink/60 bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            <button
-              onClick={() => setLang('en')}
-              className={`transition-colors ${lang === 'en' ? 'text-ink font-semibold' : 'hover:text-ink'}`}
-            >
-              EN
-            </button>
-            <span className="text-ink/30">/</span>
-            <button
-              onClick={() => setLang('zh')}
-              className={`transition-colors ${lang === 'zh' ? 'text-ink font-semibold' : 'hover:text-ink'}`}
-            >
-              中文
-            </button>
-          </div>
-        </header>
+      <div className="relative z-10 flex flex-col flex-1 px-[6vw] pt-2 pb-10">
 
         {/* Main */}
         <main className="flex-1 flex flex-col justify-center max-w-[1100px]">

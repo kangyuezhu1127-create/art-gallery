@@ -7,6 +7,7 @@ import SelectionPage from './pages/SelectionPage';
 import GalleryRoomPage from './pages/GalleryRoomPage';
 import ViewerPage from './pages/ViewerPage';
 import AccountPage from './pages/AccountPage';
+import AboutPage from './pages/AboutPage';
 import { fetchArtworks, updateArtworkDB, deleteArtwork } from './lib/artworkService';
 
 /*
@@ -91,6 +92,7 @@ export default function App() {
             <Route path="/account" element={
               <AccountPage artworks={artworks} onSave={replaceArtwork} onDelete={removeArtwork} />
             } />
+            <Route path="/about" element={<AboutPage />} />
           </FadeRoutes>
         </TransitionProvider>
       </BrowserRouter>
