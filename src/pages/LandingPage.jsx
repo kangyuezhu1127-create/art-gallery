@@ -65,21 +65,31 @@ export default function LandingPage() {
         {/* Main */}
         <main className="flex-1 flex flex-col justify-center max-w-[1100px]">
           <p
-            className={`${lang === 'zh' ? 'font-cn' : 'font-display'} font-black tracking-[0.3em] text-papercut mb-4`}
-            style={{ fontSize: 'clamp(1.4rem, 2.4vw, 2.4rem)' }}
+            className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} font-black tracking-[0.18em] mb-4`}
+            style={{
+              fontSize: 'clamp(1.4rem, 2.4vw, 2.4rem)',
+              color: '#F5C518',
+              fontVariationSettings: lang === 'en' ? "'opsz' 144, 'SOFT' 100, 'WONK' 1" : undefined,
+              textShadow: '0 1px 0 rgba(245,197,24,0.12), 0 0 24px rgba(245,197,24,0.18)',
+            }}
           >
             {copy.eyebrow}
           </p>
 
           <h1
-            className="font-display font-black leading-[0.95] text-ink mb-6"
-            style={{ fontSize: 'clamp(3.6rem, 9vw, 9rem)' }}
+            className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} leading-[0.92] text-ink mb-6`}
+            style={{
+              fontSize: 'clamp(4rem, 11vw, 11rem)',
+              fontWeight: 900,
+              fontVariationSettings: lang === 'en' ? "'opsz' 144, 'SOFT' 100, 'WONK' 1" : undefined,
+              letterSpacing: '-0.02em',
+            }}
           >
             {copy.title}
           </h1>
 
           <p
-            className={`${lang === 'zh' ? 'font-cn' : 'font-display'} text-ink/70 max-w-xl mb-12 leading-relaxed`}
+            className={`${lang === 'zh' ? 'font-cn' : 'font-sansDisplay'} text-ink/70 max-w-xl mb-12 leading-relaxed`}
             style={{ fontSize: 'clamp(1rem, 1.4vw, 1.25rem)' }}
           >
             {copy.sub}

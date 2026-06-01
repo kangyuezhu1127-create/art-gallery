@@ -24,13 +24,14 @@ function Letters({
   text = 'depth gallery ',
   radius = 3.8,
   count = 9,            // times around the cylinder
-  rows = 7,             // vertical stack
-  rowOffset = 0.45,     // vertical spacing
+  rows = 9,             // vertical stack (was 7 → more for taller wave)
+  rowOffset = 0.42,     // vertical spacing
   rotatePerRow = -5,    // degrees per row
   letterX = 0.4,        // X scale (letter width)
-  letterY = 0.75,       // Y scale (letter height)
+  letterY = 0.78,       // Y scale (letter height)
   weight = 700,         // font weight
-  waveLatitude = 1.22,  // amplitude of vertical wave (in units)
+  waveAmplitude = 1.4,  // overall vertical wave amplitude
+  waveFreq = 2.4,       // wave cycles per row
   pride = true,         // rainbow colors
   baseColor = '#0a0a0a',
 }) {
@@ -69,12 +70,16 @@ function Letters({
     return list;
   }, [text, radius, count, rows, rowOffset, rotatePerRow]);
 
+  // Animated wave phase — letters ride a travelling wave around the cylinder
+  const phaseRef = useRef(0);
+
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
     const t = clock.getElapsedTime();
-    groupRef.current.rotation.y = t * 0.12;          // slow spin
-    // Subtle wave breathing — modulate group Y a touch
-    groupRef.current.position.y = Math.sin(t * 0.3) * 0.08;
+    groupRef.current.rotation.y = t * 0.14;          // slow spin
+    phaseRef.current = t * 0.6;                       // wave phase travels
+    // Group breathing
+    groupRef.current.position.y = Math.sin(t * 0.3) * 0.12;
   });
 
   const colorFor = (hue) => {
@@ -89,8 +94,11 @@ function Letters({
   return (
     <group ref={groupRef} rotation={[0, 0.122, 0.349]}>
       {letters.map((l, idx) => {
-        // wave deformation across columns to give "latitude 122" feel
-        const waveY = Math.sin((l.colIdx / 6) + l.rowIdx * 0.5) * waveLatitude * 0.18;
+        // Dual-wave deformation: primary fast wave + secondary slow wave +
+        // a tilt across the row index for that "Latitude 122" warp feel.
+        const wavePrimary   = Math.sin((l.colIdx / 2.4) + l.rowIdx * 0.9);
+        const waveSecondary = Math.cos((l.colIdx / 5) + l.rowIdx * 0.4);
+        const waveY = (wavePrimary * 0.6 + waveSecondary * 0.4) * waveAmplitude * 0.35;
         return (
           <Text
             key={idx}

@@ -5,12 +5,15 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Inter Tight"', '"Noto Sans SC"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        display: ['"Inter Tight"', '"Noto Sans SC"', 'sans-serif'],
+        display: ['"Fraunces"', '"Noto Sans SC"', 'serif'],
+        editorial: ['"Fraunces"', 'serif'],
+        sansDisplay: ['"Inter Tight"', '"Noto Sans SC"', 'sans-serif'],
         cn: ['"Noto Sans SC"', '"Inter Tight"', 'sans-serif'],
         typewriter: ['"Special Elite"', '"Courier New"', 'monospace'],
       },
       colors: {
-        papercut: '#D72638',  // 剪纸红
+        papercut: '#D72638',  // 剪纸红（保留供其它页面用）
+        marigold: '#F5C518',  // 暖金黄
         ink: '#0a0a0a',
         paper: '#ffffff',
       },
