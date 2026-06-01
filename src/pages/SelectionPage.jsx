@@ -260,12 +260,9 @@ export default function SelectionPage({ artworks = [] }) {
         </Canvas>
       </div>
 
-      {/* HUD overlay */}
+      {/* HUD overlay — site nav with dark variant */}
       <div className="absolute top-0 left-0 right-0 z-20">
-        {/* Site nav (white text variant for dark bg) */}
-        <div className="cosmos-nav">
-          <SiteNav variant="transparent" lang={lang} onLangChange={setLang} />
-        </div>
+        <SiteNav variant="dark" lang={lang} onLangChange={setLang} />
       </div>
 
       {/* Page-specific labels overlaid bottom-left */}
@@ -298,17 +295,6 @@ export default function SelectionPage({ artworks = [] }) {
         </div>
       </div>
 
-      {/* Local style: make SiteNav text white over dark background */}
-      <style>{`
-        .cosmos-nav nav { background: transparent !important; border: none !important; }
-        .cosmos-nav nav .text-ink            { color: #fff !important; }
-        .cosmos-nav nav .text-ink\\/55       { color: rgba(255,255,255,0.6) !important; }
-        .cosmos-nav nav .text-ink\\/45       { color: rgba(255,255,255,0.4) !important; }
-        .cosmos-nav nav .text-ink\\/40       { color: rgba(255,255,255,0.35) !important; }
-        .cosmos-nav nav .border-ink\\/15     { border-color: rgba(255,255,255,0.25) !important; }
-        .cosmos-nav nav .border-ink\\/10     { border-color: rgba(255,255,255,0.15) !important; }
-        .cosmos-nav nav button:hover         { background-color: rgba(255,255,255,0.1) !important; }
-      `}</style>
     </div>
   );
 }

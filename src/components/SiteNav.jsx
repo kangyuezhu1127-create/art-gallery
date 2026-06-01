@@ -61,47 +61,55 @@ export default function SiteNav({
   const initial = displayName.charAt(0).toUpperCase();
 
   const isTransparent = variant === 'transparent';
-  const navBg = isTransparent
-    ? 'bg-transparent'
-    : 'bg-white/85 backdrop-blur-md border-b border-ink/10';
+  const isDark        = variant === 'dark';
+  // Visual separation is the priority — every variant has a defined bottom edge
+  const navBg = isDark
+    ? 'bg-black/55 backdrop-blur-md border-b border-white/15 text-white'
+    : isTransparent
+      ? 'bg-white/70 backdrop-blur-md border-b border-ink/15'
+      : 'bg-white border-b border-ink/15';
 
   return (
     <>
       <nav className={`sticky top-0 z-40 ${navBg}`}>
-        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between gap-6">
+        <div className="max-w-[1500px] mx-auto px-8 h-20 flex items-center justify-between gap-6">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-3 shrink-0 group">
             <span
-              className="w-2 h-2 rounded-full transition-transform group-hover:scale-150"
+              className="w-[9px] h-[9px] rounded-full transition-transform group-hover:scale-150"
               style={{ backgroundColor: '#7DD3FC' }}
             />
             <div className="leading-tight">
-              <div className="font-display font-bold tracking-tight text-ink text-[1.05rem]">
+              <div className={`font-display font-black tracking-tight ${isDark ? 'text-white' : 'text-ink'} text-[1.15rem]`}>
                 Depth Gallery
               </div>
-              <div className="text-[0.62rem] tracking-[0.22em] uppercase text-ink/45 -mt-0.5 hidden sm:block">
+              <div className={`text-[0.58rem] tracking-[0.32em] uppercase ${isDark ? 'text-white/45' : 'text-ink/45'} -mt-0.5 hidden sm:block`}>
                 Unveiled · The Art
               </div>
             </div>
           </Link>
 
-          {/* Module nav */}
-          <div className="hidden md:flex items-center gap-0 flex-1 justify-center">
+          {/* Module nav — editorial style, full-height dividers */}
+          <div className={`hidden md:flex items-stretch h-full flex-1 justify-center ${isDark ? 'border-x border-white/10' : 'border-x border-ink/10'} mx-4`}>
             {modules.map((m, i) => (
               <NavLink
                 key={m.to}
                 to={m.to}
                 className={({ isActive }) =>
-                  `relative px-6 py-2 text-[0.78rem] tracking-[0.22em] uppercase font-semibold transition-colors ${
-                    isActive ? 'text-ink' : 'text-ink/55 hover:text-ink'
-                  } ${i !== 0 ? 'border-l border-ink/10' : ''}`
+                  `relative flex items-center justify-center px-8 text-[0.78rem] tracking-[0.28em] uppercase font-bold transition-all ${
+                    isActive
+                      ? (isDark ? 'text-white' : 'text-ink')
+                      : (isDark ? 'text-white/55 hover:text-white' : 'text-ink/55 hover:text-ink')
+                  } ${i !== 0 ? (isDark ? 'border-l border-white/10' : 'border-l border-ink/10') : ''}`
                 }
               >
                 {({ isActive }) => (
                   <>
                     <span>{lang === 'zh' ? m.labelZh : m.label}</span>
                     {isActive && (
-                      <span className="absolute left-1/2 -translate-x-1/2 bottom-1 w-1 h-1 rounded-full bg-ink" />
+                      <span
+                        className={`absolute left-0 right-0 bottom-0 h-[3px] ${isDark ? 'bg-white' : 'bg-ink'}`}
+                      />
                     )}
                   </>
                 )}
@@ -110,19 +118,27 @@ export default function SiteNav({
           </div>
 
           {/* Right cluster: lang + account */}
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-5 shrink-0">
             {/* Lang switcher */}
-            <div className="hidden sm:flex items-center gap-2 text-xs tracking-wider text-ink/55">
+            <div className={`hidden sm:flex items-center gap-2 text-xs tracking-wider ${isDark ? 'text-white/55' : 'text-ink/55'}`}>
               <button
                 onClick={() => setLang('en')}
-                className={`transition-colors ${lang === 'en' ? 'text-ink font-semibold' : 'hover:text-ink'}`}
+                className={`transition-colors ${
+                  lang === 'en'
+                    ? (isDark ? 'text-white font-bold' : 'text-ink font-bold')
+                    : (isDark ? 'hover:text-white' : 'hover:text-ink')
+                }`}
               >
                 EN
               </button>
-              <span className="text-ink/25">/</span>
+              <span className={isDark ? 'text-white/25' : 'text-ink/25'}>/</span>
               <button
                 onClick={() => setLang('zh')}
-                className={`transition-colors ${lang === 'zh' ? 'text-ink font-semibold' : 'hover:text-ink'}`}
+                className={`transition-colors ${
+                  lang === 'zh'
+                    ? (isDark ? 'text-white font-bold' : 'text-ink font-bold')
+                    : (isDark ? 'hover:text-white' : 'hover:text-ink')
+                }`}
               >
                 中
               </button>
@@ -133,17 +149,23 @@ export default function SiteNav({
               <button
                 onClick={() => setAuthOpen(true)}
                 title="Sign in"
-                className="w-9 h-9 rounded-full flex items-center justify-center border border-ink/15 text-ink hover:bg-ink hover:text-white transition-colors"
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-[1.5px] transition-colors ${
+                  isDark
+                    ? 'border-white/30 text-white hover:bg-white hover:text-ink'
+                    : 'border-ink/20 text-ink hover:bg-ink hover:text-white'
+                }`}
               >
-                <PersonIcon size={16} />
+                <PersonIcon size={17} />
               </button>
             ) : (
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen((o) => !o)}
-                  className="w-9 h-9 rounded-full bg-ink text-white text-sm font-bold flex items-center justify-center hover:opacity-85 transition-opacity"
+                  className={`w-10 h-10 rounded-full text-sm font-bold flex items-center justify-center hover:opacity-85 transition-opacity ${
+                    isDark ? 'bg-white text-ink' : 'bg-ink text-white'
+                  }`}
                 >
-                  {initial || <PersonIcon size={16} />}
+                  {initial || <PersonIcon size={17} />}
                 </button>
                 {menuOpen && (
                   <div className="absolute right-0 mt-2 w-52 bg-white border border-ink/10 rounded-2xl shadow-xl py-1.5 z-50">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import Navbar from '../components/Navbar';
+import SiteNav from '../components/SiteNav';
 import ArtworkCard from '../components/ArtworkCard';
 import UploadModal from '../components/UploadModal';
 import AuthModal from '../components/AuthModal';
@@ -69,7 +69,7 @@ export default function GalleryPage({ artworks, loading, onAdd, onUpdate, onSave
         <Butterfly size={36} className="text-papercut/70" />
       </div>
 
-      <Navbar onUpload={handleUploadClick} onLogin={() => setShowAuth(true)} />
+      <SiteNav variant="solid" />
 
       {/* HERO */}
       <section className="max-w-[1200px] mx-auto px-6 pt-20 pb-16 relative">

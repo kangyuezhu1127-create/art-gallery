@@ -8,6 +8,7 @@ import { useGalleryTransition } from '../contexts/TransitionContext';
 import UploadModal from '../components/UploadModal';
 import AuthModal from '../components/AuthModal';
 import EditModal from '../components/EditModal';
+import SiteNav from '../components/SiteNav';
 
 /* ─── Room constants ─── */
 const HW     = 16.0;
@@ -551,54 +552,39 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         ))}
       </Canvas>
 
-      {/* top bar */}
+      {/* Site nav — sticky over the canvas with solid white block */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30 }}>
+        <SiteNav variant="solid" />
+      </div>
+
+      {/* Gallery-specific tool chips just below the nav */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        padding: '1.25rem 2rem',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, transparent 100%)',
-        pointerEvents: 'none',
+        position: 'absolute', top: '5.5rem', left: '2rem', right: '2rem', zIndex: 25,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none',
       }}>
-        <div style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <button onClick={() => navigate('/enter')} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: '#666', fontSize: '0.72rem', letterSpacing: '0.14em', display: 'flex', alignItems: 'center', gap: '0.4rem',
-          }}>
-            ← DEPTH GALLERY
-          </button>
-          <button onClick={() => setMotionOn(m => !m)} style={{
-            background: motionOn ? 'rgba(0,0,0,0.12)' : 'none',
-            border: `1px solid ${motionOn ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.14)'}`,
+        <button
+          onClick={() => setMotionOn((m) => !m)}
+          style={{
+            pointerEvents: 'all',
+            background: motionOn ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(8px)',
+            border: `1px solid ${motionOn ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.12)'}`,
             borderRadius: 99, cursor: 'pointer',
-            color: motionOn ? '#333' : '#999',
-            fontSize: '0.58rem', letterSpacing: '0.1em',
-            padding: '0.26rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.3rem',
-          }}>
-            ✋ {motionOn ? 'MOTION ON' : 'MOTION'}
-          </button>
-        </div>
-        <div style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
-          {user && (
-            <button
-              onClick={() => navigate('/account')}
-              title="My Account"
-              style={{
-                width: '2rem', height: '2rem', borderRadius: '50%', flexShrink: 0,
-                background: 'linear-gradient(135deg, #c8a455 0%, #7c5e1a 100%)',
-                border: 'none', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: '0.72rem', fontWeight: 500,
-                boxShadow: '0 2px 8px rgba(200,164,85,0.4)',
-              }}
-            >
-              {(user.user_metadata?.display_name || user.email || 'U')[0].toUpperCase()}
-            </button>
-          )}
-          <button onClick={handleUpload} className="upload-btn">
-            <span className="upload-icon">+</span>
-            {user ? 'UPLOAD WORK' : 'SIGN IN TO UPLOAD'}
-          </button>
-        </div>
+            color: motionOn ? '#333' : '#888',
+            fontSize: '0.6rem', letterSpacing: '0.18em', fontWeight: 700,
+            padding: '0.35rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.3rem',
+          }}
+        >
+          ✋ {motionOn ? 'MOTION · ON' : 'MOTION'}
+        </button>
+        <button
+          onClick={handleUpload}
+          className="upload-btn"
+          style={{ pointerEvents: 'all' }}
+        >
+          <span className="upload-icon">+</span>
+          {user ? 'UPLOAD WORK' : 'SIGN IN TO UPLOAD'}
+        </button>
       </div>
 
       {/* progress bar */}

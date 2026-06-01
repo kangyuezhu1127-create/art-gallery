@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import EditModal from '../components/EditModal';
+import SiteNav from '../components/SiteNav';
 
 export default function AccountPage({ artworks, onSave, onDelete }) {
   const navigate = useNavigate();
@@ -52,29 +53,8 @@ export default function AccountPage({ artworks, onSave, onDelete }) {
   return (
     <div style={{ minHeight: '100vh', background: '#fafafa' }}>
 
-      {/* ── top bar ── */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(250,250,250,0.96)', backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(0,0,0,0.06)',
-        padding: '1rem 2rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <button onClick={() => navigate('/gallery')} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: '#999', fontSize: '0.68rem', letterSpacing: '0.16em',
-        }}>
-          ← GALLERY
-        </button>
-        <span style={{ fontSize: '0.68rem', letterSpacing: '0.22em', color: '#444' }}>MY ACCOUNT</span>
-        <button onClick={handleSignOut} style={{
-          background: 'none', border: '1px solid rgba(0,0,0,0.14)', borderRadius: '99px',
-          cursor: 'pointer', color: '#888', fontSize: '0.65rem', letterSpacing: '0.12em',
-          padding: '0.3rem 0.85rem',
-        }}>
-          SIGN OUT
-        </button>
-      </div>
+      {/* Unified site nav */}
+      <SiteNav variant="solid" />
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '3rem 2rem 5rem' }}>
 

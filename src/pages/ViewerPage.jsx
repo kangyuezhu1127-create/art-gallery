@@ -4,6 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Artwork3DViewer from '../components/Artwork3DViewer';
 import ReimaginePanel from '../components/ReimaginePanel';
 import { useGalleryTransition } from '../contexts/TransitionContext';
+import SiteNav from '../components/SiteNav';
 
 const FIXED_DEPTH = 0.25; // no slider — fixed depth for the 3D effect
 
@@ -77,16 +78,19 @@ export default function ViewerPage({ artworks, onUpdate }) {
         <meta property="og:type" content="article" />
       </Helmet>
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4 text-white z-10">
+      {/* Unified site nav (dark variant) */}
+      <SiteNav variant="dark" />
+
+      {/* Artwork title strip below nav */}
+      <div className="flex items-center justify-between px-6 py-3 text-white z-10 border-b border-white/10 bg-black/40 backdrop-blur-sm">
         <button onClick={() => navigate('/gallery')}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+          className="flex items-center gap-2 text-xs tracking-[0.18em] uppercase text-white/55 hover:text-white transition-colors">
           ← Back to Gallery
         </button>
         <div className="text-center">
-          <h1 className="font-medium text-white">{artwork.title}</h1>
+          <h1 className="font-display font-bold text-white text-base">{artwork.title}</h1>
           {artwork.artist && (
-            <p className="text-xs text-gray-400">{artwork.artist}{artwork.year && ` · ${artwork.year}`}</p>
+            <p className="text-xs text-white/55">{artwork.artist}{artwork.year && ` · ${artwork.year}`}</p>
           )}
         </div>
         <div className="w-24" />
