@@ -96,7 +96,7 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-wrap items-center gap-6">
-            <Button to="/gallery" variant="outline" size="lg">
+            <Button to="/enter" variant="outline" size="lg">
               {copy.cta}
             </Button>
             <span className="text-[0.7rem] tracking-[0.18em] uppercase text-ink/50">
