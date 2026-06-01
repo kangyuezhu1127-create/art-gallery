@@ -1,50 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * EnvelopeReveal — scroll-driven letter envelope.
+ * EnvelopeReveal — auto-opening letter envelope.
  *
- * Structure (drawn back-to-front, z-index ascending):
- *   1. Envelope back body (solid rounded rect) — the "shell" you see
- *      behind everything.
- *   2. Inside-clip wrapper (overflow:hidden, same bounds as body) —
- *      letter card lives in here so it can NEVER appear below or beside
- *      the envelope.
- *   3. Front face — a rectangle with a V-notch cut at the top. The
- *      letter peeks through the notch as it rises.
- *   4. Top flap — a triangle whose hinge is the envelope's top edge.
- *      Rotates from 0 (closed, masking the V notch) to ~-155° (open,
- *      tipping backwards but staying near the envelope so the whole
- *      shape still reads as ONE object).
+ * Behaviour:
+ *  - Section is a single viewport tall. User scrolls into it once.
+ *  - As soon as the section is meaningfully visible (IntersectionObserver,
+ *    40% threshold), a time-based animation runs to open the flap and
+ *    rise the letter. The user is NOT forced to keep scrolling.
+ *  - After the section, the user can scroll past freely.
  *
- * Timeline driven by section scroll progress (0 → 1):
- *   flap opens   over progress 0   → 0.55
- *   letter rises over progress 0.40 → 0.95
- *
- * Initial state: flap closed and flat, letter fully inside the
- * pocket (no visible paper anywhere).
+ * Visual structure (back-to-front):
+ *   1. Envelope back body (rounded rect)
+ *   2. Letter card (clipped to envelope bounds via overflow:hidden)
+ *   3. Front face — rounded rect with V notch at top
+ *   4. Top flap — triangle hinged at envelope top
+ *        front face : down-triangle (matches V notch when closed)
+ *        back face  : UP-triangle (clipPath inverted) so when the flap
+ *                     tips open we see an up-pointing triangle, like a
+ *                     real envelope flap tucked behind.
  */
-
-function useScrollProgress(ref) {
-  const [p, setP] = useState(0);
-  useEffect(() => {
-    if (!ref.current) return;
-    const update = () => {
-      const rect = ref.current.getBoundingClientRect();
-      const total = rect.height - window.innerHeight;
-      const scrolled = -rect.top;
-      const v = total > 0 ? scrolled / total : 0;
-      setP(Math.max(0, Math.min(1, v)));
-    };
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-    return () => {
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-    };
-  }, [ref]);
-  return p;
-}
 
 const ENV_W = 'min(62vw, 620px)';
 const ENV_H = 'min(40vw, 400px)';
@@ -57,50 +32,74 @@ const COLOR = {
   ink:         '#1a1a1a',
 };
 
-// V notch geometry — front face cuts down from top at 50% across,
-// peak at 58% of envelope height (so the opening is a shallow V).
-const NOTCH_PEAK = 58; // %
-const FLAP_HEIGHT = 60; // % — top flap covers the V notch when closed
+const NOTCH_PEAK = 72;   // % — V notch apex (deeper = more letter visible)
+const FLAP_HEIGHT = 72;  // % — matches notch so closed flap covers V perfectly
+
+const ANIM_DURATION = 1800; // ms — auto-open animation length
+const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
 export default function EnvelopeReveal({ lang = 'en' }) {
   const sectionRef = useRef(null);
-  const progress   = useScrollProgress(sectionRef);
+  const [progress, setProgress] = useState(0);
 
+  // Auto-trigger when the envelope is in view
+  useEffect(() => {
+    if (!sectionRef.current) return;
+    let raf;
+    let startTime = null;
+    let cancelled = false;
+    let triggered = false;
+
+    const animate = (now) => {
+      if (cancelled) return;
+      if (startTime == null) startTime = now;
+      const elapsed = now - startTime;
+      const p = Math.min(1, elapsed / ANIM_DURATION);
+      setProgress(easeOutCubic(p));
+      if (p < 1) raf = requestAnimationFrame(animate);
+    };
+
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !triggered) {
+          triggered = true;
+          raf = requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0.35 }
+    );
+    obs.observe(sectionRef.current);
+
+    return () => {
+      cancelled = true;
+      obs.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Timeline split: flap opens first, letter rises after
   const flapOpen   = Math.min(1, progress / 0.55);
-  const letterRise = Math.max(0, Math.min(1, (progress - 0.40) / 0.55));
+  const letterRise = Math.max(0, Math.min(1, (progress - 0.35) / 0.65));
 
-  // Cap rotation at -155° so flap stays visually attached
-  const flapAngle  = -155 * flapOpen;
+  // Flap rotation: stops at -160° so it stays close to the envelope
+  const flapAngle = -160 * flapOpen;
 
-  // letterRise 0 → letter fully tucked inside (bottom at envelope bottom,
-  //              top below the notch peak so nothing peeks).
-  // letterRise 1 → letter top emerges above the notch.
-  const letterY = (1 - letterRise) * 70;  // % of card height shifted down
+  // Letter Y: from 70% (hidden inside) to -22% (top sticks above the V)
+  const letterY = 70 - letterRise * 92;
 
   const isEn = lang === 'en';
 
   return (
     <section
       ref={sectionRef}
-      className="relative bg-paper"
-      style={{ height: '240vh' }}
+      className="relative bg-paper py-[10vh]"
     >
-      <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
+      <div className="flex flex-col items-center px-4">
+        {/* Eyebrow */}
         <p
-          className="absolute top-[14vh] left-1/2 -translate-x-1/2 font-editorial text-[#404040] tracking-[0.32em] uppercase text-xs sm:text-sm"
-          style={{
-            opacity: Math.max(0, 1 - progress * 1.8),
-            transition: 'opacity 0.2s',
-          }}
+          className="font-editorial text-[#404040] tracking-[0.32em] uppercase text-xs sm:text-sm mb-[6vh] text-center"
         >
           {isEn ? 'A letter to the makers' : '致 · 创作者的一封信'}
-        </p>
-
-        <p
-          className="absolute bottom-[8vh] left-1/2 -translate-x-1/2 text-[0.65rem] tracking-[0.32em] uppercase text-ink/40"
-          style={{ opacity: Math.max(0, 1 - progress * 4) }}
-        >
-          {isEn ? '↓ Scroll to open' : '↓ 向下滑动 · 拆开信封'}
         </p>
 
         {/* Stage */}
@@ -113,7 +112,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               transformStyle: 'preserve-3d',
             }}
           >
-            {/* ── 1. Back body of envelope (deepest) ── */}
+            {/* ── 1. Back body (deepest) ── */}
             <div
               className="absolute inset-0 rounded-[6px]"
               style={{
@@ -123,26 +122,25 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               }}
             />
 
-            {/* ── 2. Inside pocket (overflow-hidden clips letter to envelope) ── */}
+            {/* ── 2. Letter pocket (clips letter to envelope bounds) ── */}
             <div
               className="absolute inset-0 rounded-[6px] overflow-hidden"
               style={{ zIndex: 2 }}
             >
-              {/* Letter card */}
               <div
                 style={{
                   position: 'absolute',
                   left: '6%',
                   right: '6%',
-                  top: '8%',
-                  bottom: '8%',
+                  top: '6%',
+                  bottom: '6%',
                   background: COLOR.card,
                   borderRadius: '3px',
                   boxShadow:
                     '0 8px 18px -4px rgba(0,0,0,0.14), 0 2px 4px rgba(0,0,0,0.06)',
                   transform: `translateY(${letterY}%)`,
                   transition: 'transform 0.05s linear',
-                  padding: 'clamp(1rem, 2.2vw, 1.8rem)',
+                  padding: 'clamp(0.9rem, 2vw, 1.6rem)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
@@ -150,16 +148,16 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               >
                 <div>
                   <p
-                    className="font-editorial text-[#9c6e72] mb-3"
+                    className="font-editorial text-[#9c6e72] mb-2"
                     style={{ fontSize: 'clamp(0.55rem, 0.85vw, 0.78rem)', letterSpacing: '0.18em' }}
                   >
                     {isEn ? 'Dear maker,' : '致每一位手艺人：'}
                   </p>
 
                   <p
-                    className="font-editorial text-ink leading-[1.45]"
+                    className="font-editorial text-ink leading-[1.4]"
                     style={{
-                      fontSize: 'clamp(0.78rem, 1.15vw, 1.05rem)',
+                      fontSize: 'clamp(0.72rem, 1.05vw, 0.98rem)',
                       fontWeight: 500,
                       letterSpacing: '-0.005em',
                     }}
@@ -196,14 +194,14 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                 <div>
                   <p
                     className="font-editorial text-ink/65"
-                    style={{ fontSize: 'clamp(0.55rem, 0.8vw, 0.72rem)', letterSpacing: '0.02em' }}
+                    style={{ fontSize: 'clamp(0.52rem, 0.78vw, 0.7rem)', letterSpacing: '0.02em' }}
                   >
                     {isEn ? 'Sincerely,' : '此致，'}
                   </p>
                   <p
                     className="font-editorial text-ink mt-0.5"
                     style={{
-                      fontSize: 'clamp(0.75rem, 1.05vw, 0.95rem)',
+                      fontSize: 'clamp(0.72rem, 1vw, 0.92rem)',
                       fontWeight: 700,
                       letterSpacing: '0.06em',
                     }}
@@ -214,7 +212,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               </div>
             </div>
 
-            {/* ── 3. Front face of envelope (covers most of body, V notch on top) ── */}
+            {/* ── 3. Front face with V notch on top ── */}
             <div
               className="absolute inset-0 rounded-[6px]"
               style={{
@@ -225,13 +223,13 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               }}
             />
 
-            {/* Subtle horizontal seam line just below the V — the bottom of the pocket flap */}
+            {/* Inner shadow accent along the V edge */}
             <div
-              className="absolute inset-x-0 rounded-[6px]"
+              className="absolute inset-0 rounded-[6px] pointer-events-none"
               style={{
-                top: `${NOTCH_PEAK}%`,
-                height: '1px',
-                background: 'rgba(0,0,0,0.06)',
+                background:
+                  'linear-gradient(to bottom, rgba(0,0,0,0.06), rgba(0,0,0,0) 35%)',
+                clipPath: `polygon(0 0, 50% ${NOTCH_PEAK}%, 100% 0, 100% 100%, 0 100%)`,
                 zIndex: 4,
               }}
             />
@@ -248,7 +246,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                 zIndex: 5,
               }}
             >
-              {/* Front face of flap — visible when closed */}
+              {/* FRONT face — DOWN triangle (point at bottom = V apex) */}
               <div
                 className="absolute inset-0"
                 style={{
@@ -260,16 +258,16 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   borderTopRightRadius: '6px',
                 }}
               />
-              {/* Back of flap — visible when open */}
+              {/* BACK face — UP triangle (clipPath inverted) so when the flap
+                  tips open we see a triangle pointing UP, like an envelope
+                  flap folded behind. */}
               <div
                 className="absolute inset-0"
                 style={{
                   background: COLOR.flapBack,
-                  clipPath: 'polygon(0 0, 50% 100%, 100% 0)',
+                  clipPath: 'polygon(0 100%, 50% 0, 100% 100%)',
                   transform: 'rotateX(180deg)',
                   backfaceVisibility: 'hidden',
-                  borderTopLeftRadius: '6px',
-                  borderTopRightRadius: '6px',
                 }}
               />
             </div>
