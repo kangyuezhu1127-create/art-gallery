@@ -36,18 +36,40 @@ export default function LandingPage() {
       </div>
 
       {/* ──────── HERO ──────── */}
-      <div className="relative h-screen overflow-hidden -mt-20">
+      {/*
+        Hero container is taller than viewport so the kinetic type
+        extends past the visible area and fades smoothly into white,
+        instead of being hard-clipped at h-screen.
+      */}
+      <div className="relative overflow-hidden -mt-20" style={{ height: '128vh' }}>
         {/* Kinetic type background */}
         <KineticTypeBackground
           text="depth gallery  "
           className="opacity-90"
         />
 
-        {/* Soft white overlay so foreground text reads cleanly */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/40 to-white/70 pointer-events-none" />
+        {/*
+          White overlay — translucent across the hero, ramps to fully
+          opaque in the bottom ~30vh so the colours dissolve into the
+          page background with no visible seam.
+        */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to bottom, ' +
+              'rgba(255,255,255,0.18) 0%, ' +
+              'rgba(255,255,255,0.38) 45%, ' +
+              'rgba(255,255,255,0.78) 75%, ' +
+              'rgba(255,255,255,1) 100%)',
+          }}
+        />
 
-        {/* CONTENT */}
-        <div className="relative z-10 flex flex-col h-full px-[6vw] pt-24 pb-10">
+        {/* CONTENT — occupies the first 100vh of the hero */}
+        <div
+          className="relative z-10 flex flex-col px-[6vw] pt-24 pb-10"
+          style={{ height: '100vh' }}
+        >
 
         {/* Main */}
         <main className="flex-1 flex flex-col justify-center max-w-[1100px]">
@@ -99,6 +121,9 @@ export default function LandingPage() {
           </footer>
         </div>
       </div>
+
+      {/* White breathing room between kinetic fade-out and envelope */}
+      <div className="bg-paper" style={{ height: '15vh' }} />
 
       {/* ──────── ENVELOPE SECTION ──────── */}
       <EnvelopeReveal lang={lang} />
