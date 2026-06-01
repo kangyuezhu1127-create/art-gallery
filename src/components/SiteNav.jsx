@@ -60,14 +60,13 @@ export default function SiteNav({
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || '';
   const initial = displayName.charAt(0).toUpperCase();
 
-  const isTransparent = variant === 'transparent';
-  const isDark        = variant === 'dark';
-  // Visual separation is the priority — every variant has a defined bottom edge
-  const navBg = isDark
-    ? 'bg-black/55 backdrop-blur-md border-b border-white/15 text-white'
-    : isTransparent
-      ? 'bg-white/70 backdrop-blur-md border-b border-ink/15'
-      : 'bg-white border-b border-ink/15';
+  // Unified translucent-white block — works as a clear color block on top
+  // of any page (white, kinetic rainbow, deep cosmos). The block itself
+  // is the visual separator — no bottom border needed.
+  // Kept `variant` prop for API compatibility but ignored here.
+  void variant;
+  const isDark = false;
+  const navBg  = 'bg-white/72 backdrop-blur-xl';
 
   return (
     <>
