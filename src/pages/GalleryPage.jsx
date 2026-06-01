@@ -53,9 +53,9 @@ export default function GalleryPage({ artworks, loading, onAdd, onUpdate, onSave
   return (
     <div className="min-h-screen bg-paper text-ink relative">
       <Helmet>
-        <title>Depth Gallery | 立体剪纸艺术</title>
+        <title>Unvilthearts | 立体剪纸艺术</title>
         <meta name="description" content="上传你的 2D 作品，AI 自动生成深度图，用 3D 视角立体欣赏每一幅画" />
-        <meta property="og:title" content="Depth Gallery" />
+        <meta property="og:title" content="Unvilthearts" />
         <meta property="og:description" content="AI 驱动的 3D 艺术展览平台" />
         <meta property="og:type" content="website" />
       </Helmet>

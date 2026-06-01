@@ -70,9 +70,9 @@ export default function ViewerPage({ artworks, onUpdate }) {
   return (
     <div className="h-screen bg-[#0d0d0d] flex flex-col overflow-hidden">
       <Helmet>
-        <title>{artwork.title} — Depth Gallery</title>
+        <title>{artwork.title} — Unvilthearts</title>
         <meta name="description" content={seoDescription || `${artwork.title} — 3D depth viewer`} />
-        <meta property="og:title" content={`${artwork.title} — Depth Gallery`} />
+        <meta property="og:title" content={`${artwork.title} — Unvilthearts`} />
         <meta property="og:description" content={seoDescription} />
         <meta property="og:image" content={artwork.originalURL} />
         <meta property="og:type" content="article" />
