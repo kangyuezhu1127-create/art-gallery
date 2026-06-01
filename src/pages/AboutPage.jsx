@@ -5,7 +5,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <Helmet>
-        <title>About · Unvilthearts</title>
+        <title>About · Unveilthearts</title>
       </Helmet>
       <SiteNav />
 
