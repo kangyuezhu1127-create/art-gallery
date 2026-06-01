@@ -9,7 +9,6 @@ export default function Navbar({ onUpload, onLogin }) {
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || '';
   const initial = displayName.charAt(0).toUpperCase();
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
     document.addEventListener('mousedown', handler);
@@ -17,10 +16,14 @@ export default function Navbar({ onUpload, onLogin }) {
   }, []);
 
   return (
-    <nav className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-100">
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="text-xl font-semibold tracking-tight text-gray-900">
-          Depth Gallery
+    <nav className="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-ink/10">
+      <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 group">
+          <span className="w-2 h-2 bg-papercut rounded-full transition-transform group-hover:scale-150" />
+          <span className="font-display font-bold tracking-tight text-ink text-[1.05rem]">
+            Depth Gallery
+          </span>
+          <span className="font-cn text-xs text-ink/50 hidden sm:inline">揭幕的艺术</span>
         </Link>
 
         <div className="flex items-center gap-3">
@@ -28,26 +31,27 @@ export default function Navbar({ onUpload, onLogin }) {
             <>
               <button
                 onClick={onUpload}
-                className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-[0.85rem] font-semibold border-[1.5px] border-ink rounded-full bg-white text-ink hover:bg-ink hover:text-white transition-colors"
               >
-                上传作品
+                <span>上传作品</span>
+                <span>↗</span>
               </button>
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen((o) => !o)}
-                  className="w-9 h-9 rounded-full bg-gray-900 text-white text-sm font-semibold flex items-center justify-center hover:bg-gray-700 transition-colors"
+                  className="w-9 h-9 rounded-full bg-ink text-white text-sm font-bold flex items-center justify-center hover:bg-papercut transition-colors"
                 >
                   {initial}
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-50">
-                    <div className="px-3 py-2 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
-                      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-ink/10 rounded-2xl shadow-lg py-1 z-50">
+                    <div className="px-4 py-3 border-b border-ink/10">
+                      <p className="font-display font-bold text-ink truncate">{displayName}</p>
+                      <p className="text-xs text-ink/40 truncate">{user.email}</p>
                     </div>
                     <button
                       onClick={() => { signOut(); setMenuOpen(false); }}
-                      className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-sm text-ink/70 hover:bg-ink/5 hover:text-ink transition-colors"
                     >
                       退出登录
                     </button>
@@ -58,9 +62,10 @@ export default function Navbar({ onUpload, onLogin }) {
           ) : (
             <button
               onClick={onLogin}
-              className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-[0.85rem] font-semibold border-[1.5px] border-ink rounded-full bg-white text-ink hover:bg-ink hover:text-white transition-colors"
             >
-              登录 / 注册
+              <span>登录 / 注册</span>
+              <span>→</span>
             </button>
           )}
         </div>
