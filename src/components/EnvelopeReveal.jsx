@@ -52,8 +52,13 @@ function useScrollProgress(ref) {
   return p;
 }
 
-const ENV_W = 'min(62vw, 620px)';
-const ENV_H = 'min(40vw, 400px)';
+// Envelope sizing
+// - Desktop (wide viewports): caps at 620px × 400px (vw values hit caps)
+// - Mobile (narrow viewports): roughly fills available width with a taller
+//   aspect, giving the letter card enough room for the body text to wrap
+//   in just a couple of lines instead of overflowing under the front face.
+const ENV_W = 'min(88vw, 620px)';
+const ENV_H = 'min(60vw, 400px)';
 
 const COLOR = {
   shell:       '#EAE2D2',
