@@ -76,18 +76,19 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   const progress   = useScrollProgress(sectionRef);
 
   // Timeline split: flap opens early, letter follows.
-  // Bounded against the section scroll, so reversing the scroll re-closes.
-  const flapOpen   = Math.min(1, Math.max(0, progress / 0.32));        // fully open by 32% scroll
-  const letterRise = Math.max(0, Math.min(1, (progress - 0.15) / 0.45)); // rising 15% → 60%
+  // Tightened so the full reveal completes within ~50% of the section
+  // scroll — gives mobile users plenty of margin before the next section.
+  const flapOpen   = Math.min(1, Math.max(0, progress / 0.25));        // fully open by 25% scroll
+  const letterRise = Math.max(0, Math.min(1, (progress - 0.10) / 0.40)); // rising 10% → 50%
 
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
 
-  // Letter Y range tuned so the rise stops exactly when the signature is
-  // visible — no empty white card protruding above the signature.
-  // The card itself is also shortened (bottom: 28%) so there's minimal
-  // empty space inside the card below the signature.
-  const letterY = 130 - letterRise * 200;
+  // Letter Y range tuned so even at full rise the bottom of the card
+  // (signature region) sits in the WIDE upper part of the V notch, where
+  // V width >= card width — preventing side clipping on mobile where
+  // the envelope is narrower.
+  const letterY = 130 - letterRise * 220;
 
   const isEn = lang === 'en';
 
@@ -95,7 +96,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
     <section
       ref={sectionRef}
       className="relative bg-paper"
-      style={{ height: '160vh' }}
+      style={{ height: '130vh' }}
     >
       <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
         {/* Eyebrow */}
