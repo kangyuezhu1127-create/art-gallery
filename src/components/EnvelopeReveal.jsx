@@ -78,8 +78,9 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
 
-  // Letter Y: from 70% (hidden inside) to -65% (signature rises well above the V)
-  const letterY = 70 - letterRise * 135;
+  // Letter Y: from 70% (hidden inside) to -95% (entire card rises above the
+  // envelope at full open, so every paragraph + signature is visible)
+  const letterY = 70 - letterRise * 165;
 
   const isEn = lang === 'en';
 
@@ -117,10 +118,20 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               }}
             />
 
-            {/* ── 2. Letter pocket (clips letter to envelope bounds) ── */}
+            {/*
+              ── 2. Letter pocket ──
+              clip-path lets the letter extend ABOVE the envelope freely
+              (so as it rises out, the part sticking above the envelope
+              is visible against the page background), while still
+              clipping any part that would otherwise droop BELOW the
+              envelope's bottom edge.
+            */}
             <div
-              className="absolute inset-0 rounded-[6px] overflow-hidden"
-              style={{ zIndex: 2 }}
+              className="absolute inset-0 rounded-[6px]"
+              style={{
+                zIndex: 2,
+                clipPath: 'inset(-9999px 0 0 0)',
+              }}
             >
               <div
                 style={{
