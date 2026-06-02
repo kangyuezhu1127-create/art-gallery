@@ -78,9 +78,11 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
 
-  // Letter Y: from 70% (hidden inside) to -95% (entire card rises above the
-  // envelope at full open, so every paragraph + signature is visible)
-  const letterY = 70 - letterRise * 165;
+  // Letter Y range tuned so the rise stops exactly when the signature is
+  // visible — no empty white card protruding above the signature.
+  // The card itself is also shortened (bottom: 28%) so there's minimal
+  // empty space inside the card below the signature.
+  const letterY = 130 - letterRise * 200;
 
   const isEn = lang === 'en';
 
@@ -136,17 +138,18 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               <div
                 style={{
                   position: 'absolute',
-                  left: '10%',
-                  right: '10%',
+                  left: '12%',
+                  right: '12%',
                   top: '8%',
-                  bottom: '8%',
+                  bottom: '28%',
                   background: COLOR.card,
                   borderRadius: '3px',
                   boxShadow:
                     '0 8px 18px -4px rgba(0,0,0,0.14), 0 2px 4px rgba(0,0,0,0.06)',
                   transform: `translateY(${letterY}%)`,
                   transition: 'transform 0.05s linear',
-                  padding: 'clamp(0.8rem, 1.8vw, 1.4rem)',
+                  padding: 'clamp(0.8rem, 1.6vw, 1.3rem)',
+                  paddingBottom: 'clamp(0.6rem, 1.2vw, 1rem)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'flex-start',
@@ -187,10 +190,8 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   )}
                 </p>
 
-                {/* Signature — placed right after body (not pinned to card bottom)
-                    so it sits in the upper-middle of the card and stays visible
-                    through the V notch even at modest rise progress. */}
-                <div className="text-left mt-3">
+                {/* Signature — gap pushes it slightly down on the card */}
+                <div className="text-left mt-5">
                   <p
                     className="font-editorial text-ink/65"
                     style={{ fontSize: 'clamp(0.52rem, 0.78vw, 0.7rem)', letterSpacing: '0.02em' }}
