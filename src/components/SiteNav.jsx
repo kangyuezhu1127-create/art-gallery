@@ -77,7 +77,7 @@ export default function SiteNav({
             to="/"
             className="shrink-0 font-display font-black uppercase tracking-[0.22em] text-ink text-[0.95rem] hover:opacity-70 transition-opacity"
           >
-            Unveil&nbsp;The&nbsp;Art
+            Unveilthe.Arts
           </Link>
 
           {/* Module nav — pure typography, no divider lines */}

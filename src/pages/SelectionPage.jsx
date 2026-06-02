@@ -241,7 +241,7 @@ export default function SelectionPage({ artworks = [] }) {
   return (
     <div className="fixed inset-0 bg-[#05060c] text-white overflow-hidden">
       <Helmet>
-        <title>Cosmos · Unveilthearts</title>
+        <title>Cosmos · Unveilthe.Arts</title>
       </Helmet>
 
       {/* The 3D scene fills the screen */}
