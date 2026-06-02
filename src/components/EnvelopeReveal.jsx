@@ -70,10 +70,10 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   const sectionRef = useRef(null);
   const progress   = useScrollProgress(sectionRef);
 
-  // Timeline split: flap opens first, letter rises after.
+  // Timeline split: flap opens early, letter follows.
   // Bounded against the section scroll, so reversing the scroll re-closes.
-  const flapOpen   = Math.min(1, Math.max(0, progress / 0.55));
-  const letterRise = Math.max(0, Math.min(1, (progress - 0.30) / 0.65));
+  const flapOpen   = Math.min(1, Math.max(0, progress / 0.32));        // fully open by 32% scroll
+  const letterRise = Math.max(0, Math.min(1, (progress - 0.15) / 0.45)); // rising 15% → 60%
 
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
@@ -149,47 +149,48 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   padding: 'clamp(0.8rem, 1.8vw, 1.4rem)',
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'space-between',
+                  justifyContent: 'flex-start',
                 }}
               >
-                <div>
-                  <p
-                    className="font-editorial text-[#9c6e72] mb-2"
-                    style={{ fontSize: 'clamp(0.55rem, 0.85vw, 0.78rem)', letterSpacing: '0.18em' }}
-                  >
-                    {isEn ? 'Dear maker,' : '致每一位手艺人：'}
-                  </p>
+                <p
+                  className="font-editorial text-[#9c6e72] mb-2"
+                  style={{ fontSize: 'clamp(0.55rem, 0.85vw, 0.78rem)', letterSpacing: '0.18em' }}
+                >
+                  {isEn ? 'Dear maker,' : '致每一位手艺人：'}
+                </p>
 
-                  <p
-                    className="font-editorial text-ink leading-[1.45]"
-                    style={{
-                      fontSize: 'clamp(0.7rem, 1vw, 0.92rem)',
-                      fontWeight: 500,
-                      letterSpacing: '-0.005em',
-                    }}
-                  >
-                    {isEn ? (
-                      <>
-                        An invitation — to those who fold, who cut, who hold a steady blade against thin paper.
-                        <br /><br />
-                        <span style={{ color: '#555' }}>
-                          Here, every work is given depth, weight, and the room to be seen.
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        这是写给所有把传统中国纸艺留在生活里的人。
-                        <br /><br />
-                        <span style={{ color: '#555' }}>
-                          在这里，每一件作品都将获得深度、重量，
-                          以及被看见的空间。
-                        </span>
-                      </>
-                    )}
-                  </p>
-                </div>
+                <p
+                  className="font-editorial text-ink leading-[1.45]"
+                  style={{
+                    fontSize: 'clamp(0.7rem, 1vw, 0.92rem)',
+                    fontWeight: 500,
+                    letterSpacing: '-0.005em',
+                  }}
+                >
+                  {isEn ? (
+                    <>
+                      An invitation — to those who fold, who cut, who hold a steady blade against thin paper.
+                      <br /><br />
+                      <span style={{ color: '#555' }}>
+                        Here, every work is given depth, weight, and the room to be seen.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      这是写给所有把传统中国纸艺留在生活里的人。
+                      <br /><br />
+                      <span style={{ color: '#555' }}>
+                        在这里，每一件作品都将获得深度、重量，
+                        以及被看见的空间。
+                      </span>
+                    </>
+                  )}
+                </p>
 
-                <div className="text-left">
+                {/* Signature — placed right after body (not pinned to card bottom)
+                    so it sits in the upper-middle of the card and stays visible
+                    through the V notch even at modest rise progress. */}
+                <div className="text-left mt-3">
                   <p
                     className="font-editorial text-ink/65"
                     style={{ fontSize: 'clamp(0.52rem, 0.78vw, 0.7rem)', letterSpacing: '0.02em' }}
