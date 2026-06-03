@@ -5,6 +5,7 @@ import Artwork3DViewer from '../components/Artwork3DViewer';
 import ReimaginePanel from '../components/ReimaginePanel';
 import { useGalleryTransition } from '../contexts/TransitionContext';
 import SiteNav from '../components/SiteNav';
+import HandsfreeOverlay from '../components/gestures/HandsfreeOverlay';
 
 const FIXED_DEPTH = 0.25; // no slider — fixed depth for the 3D effect
 
@@ -69,6 +70,9 @@ export default function ViewerPage({ artworks, onUpdate }) {
 
   return (
     <div className="h-screen bg-[#0d0d0d] flex flex-col overflow-hidden">
+      {/* ───── Hands-free gesture demo (dwell-select on Reimagine) ───── */}
+      <HandsfreeDemo />
+
       <Helmet>
         <title>{artwork.title} — Unveilthe.Arts</title>
         <meta name="description" content={seoDescription || `${artwork.title} — 3D depth viewer`} />
@@ -132,5 +136,59 @@ export default function ViewerPage({ artworks, onUpdate }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * HandsfreeDemo — toggle button + camera-driven cursor.
+ *
+ * When the user dwells (1.5s) over any element with
+ * [data-gesture-target], that element is clicked. On this page the
+ * only registered target is the ReimaginePanel's main button, so the
+ * end-to-end demo is:  enable → hover hand over Reimagine button →
+ * progress ring fills → button auto-fires → AI scene generates.
+ */
+function HandsfreeDemo() {
+  const [on, setOn] = useState(false);
+
+  return (
+    <>
+      {/* Toggle pill — top-right under SiteNav, above 3D canvas */}
+      <button
+        onClick={() => setOn((v) => !v)}
+        title={on ? 'Turn off hands-free' : 'Enable hands-free (camera)'}
+        style={{
+          position: 'absolute',
+          top: 92,   // sits below SiteNav (80px) + title strip
+          right: 16,
+          zIndex: 30,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 14px',
+          background: on ? 'rgba(124,58,237,0.18)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${on ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.18)'}`,
+          color: on ? '#c4b5fd' : '#ddd',
+          fontSize: 11,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          borderRadius: 99,
+          cursor: 'pointer',
+          backdropFilter: 'blur(8px)',
+          transition: 'all 0.2s',
+        }}
+      >
+        <span style={{ fontSize: 14, lineHeight: 1 }}>{on ? '👁' : '👋'}</span>
+        {on ? 'Hands-free · On' : 'Hands-free'}
+      </button>
+
+      <HandsfreeOverlay
+        enabled={on}
+        dwellMs={1500}
+        selector="[data-gesture-target]"
+        onSelect={(el) => el.click()}
+        onClose={() => setOn(false)}
+      />
+    </>
   );
 }

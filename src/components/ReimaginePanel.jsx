@@ -101,7 +101,7 @@ export default function ReimaginePanel({ artwork }) {
       `}</style>
 
       {/* ── Main button — bottom centre ── */}
-      <button onClick={generate} style={{
+      <button onClick={generate} data-gesture-target="reimagine" style={{
         ...btnStyle,
         position: 'absolute',
         bottom: '2.2rem',
