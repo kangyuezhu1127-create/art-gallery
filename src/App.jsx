@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { TransitionProvider } from './contexts/TransitionContext';
 import LandingPage from './pages/LandingPage';
-import SelectionPage from './pages/SelectionPage';
+import SelectionPage from './pages/SelectionPage'; // eslint-disable-line no-unused-vars -- kept for quick revert once Cosmos controls are fixed
+import CosmosUpgradePage from './pages/CosmosUpgradePage';
 import GalleryRoomPage from './pages/GalleryRoomPage';
 import ViewerPage from './pages/ViewerPage';
 import AccountPage from './pages/AccountPage';
@@ -78,7 +79,7 @@ export default function App() {
         <TransitionProvider>
           <FadeRoutes>
             <Route path="/"        element={<LandingPage />} />
-            <Route path="/enter"   element={<SelectionPage artworks={artworks} />} />
+            <Route path="/enter"   element={<CosmosUpgradePage artworks={artworks} />} />
             <Route path="/gallery" element={
               <GalleryRoomPage
                 artworks={artworks} loading={loading}
