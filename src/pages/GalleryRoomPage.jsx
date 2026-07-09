@@ -9,6 +9,7 @@ import UploadModal from '../components/UploadModal';
 import AuthModal from '../components/AuthModal';
 import EditModal from '../components/EditModal';
 import SiteNav from '../components/SiteNav';
+import GestureCameraControl from '../components/gestures/GestureCameraControl';
 
 /* ─── Room constants ─── */
 const HW     = 16.0;
@@ -514,6 +515,53 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   const handleUpload = () => (user ? setShowUpload(true) : setShowAuth(true));
   const progress = Math.max(0, Math.min(1, (3.5 - targetZ) / (3.5 - minZ)));
 
+  /* ─── Hand-gesture navigation (camera window drives the walk) ─── */
+  const pinchCooldown = useRef(false);
+  const targetZRef    = useRef(targetZ);
+  targetZRef.current  = targetZ;
+
+  const handleHandFrame = ({ x, y, gesture }) => {
+    if (transitionRef.current) return;
+
+    // Dead-zone around center; outside it steer / walk proportionally.
+    const D  = 0.16;               // half-width of the neutral zone
+    const dx = x - 0.5;            // -0.5..0.5
+    const dy = y - 0.5;
+    const xf = Math.abs(dx) > D ? (dx - Math.sign(dx) * D) / (0.5 - D) : 0;
+    const yf = Math.abs(dy) > D ? (dy - Math.sign(dy) * D) / (0.5 - D) : 0;
+
+    // Fist = hold position (brake). Otherwise steer + walk.
+    if (gesture !== 'fist') {
+      if (xf !== 0) setTargetYaw(v => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, v - xf * 0.02)));
+      // hand up (y small → dy negative) walks forward into the room
+      if (yf !== 0) setTargetZ(v => Math.min(3.5, Math.max(minZ, v + yf * 0.14)));
+    }
+    setJoy({ x: xf, y: yf });
+
+    // Pinch = enter the artwork nearest to the current camera position.
+    if (gesture === 'pinch' && !pinchCooldown.current) {
+      pinchCooldown.current = true;
+      setTimeout(() => { pinchCooldown.current = false; }, 1500);
+      enterNearestFrame();
+    }
+  };
+
+  const enterNearestFrame = () => {
+    const camZ = targetZRef.current;
+    let best = null;
+    leftWall.forEach((art, i) => {
+      const z = -(i * GAP + GAP);
+      const d = Math.abs(z - camZ);
+      if (!best || d < best.d) best = { art, z, side: 'left', d };
+    });
+    rightWall.forEach((art, i) => {
+      const z = -(i * GAP + GAP * 1.5);
+      const d = Math.abs(z - camZ);
+      if (!best || d < best.d) best = { art, z, side: 'right', d };
+    });
+    if (best && best.d < GAP * 0.9) handleFrameClick(best.art, best.z, best.side);
+  };
+
   return (
     <div
       style={{ width: '100vw', height: '100vh', background: '#000', position: 'relative', overflow: 'hidden', cursor: 'grab' }}
@@ -599,7 +647,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         transition: 'opacity 0.3s',
       }}>
         {motionOn
-          ? '✋ MOVE CURSOR TO EDGE TO NAVIGATE · CLICK ARTWORK TO VIEW IN 3D'
+          ? '✋ MOVE HAND TO STEER · RAISE HAND TO WALK · PINCH TO ENTER 3D'
           : 'SCROLL ↑↓ TO WALK · SCROLL ←→ OR DRAG TO LOOK · CLICK ARTWORK TO VIEW IN 3D'}
       </div>
 
@@ -670,6 +718,13 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
           <p style={{ color: '#999', fontSize: '0.8rem', letterSpacing: '0.15em' }}>LOADING GALLERY...</p>
         </div>
       )}
+
+      {/* Hand-gesture camera window — appears when MOTION is on */}
+      <GestureCameraControl
+        enabled={motionOn}
+        onFrame={handleHandFrame}
+        onClose={() => setMotionOn(false)}
+      />
 
       {showUpload && <UploadModal onClose={handleUploadClose} onAdd={handleAddSuccess} onUpdate={onUpdate} />}
       {showAuth   && <AuthModal   onClose={handleAuthClose} />}
