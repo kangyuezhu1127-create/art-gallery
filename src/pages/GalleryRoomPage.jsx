@@ -19,6 +19,10 @@ const GAP    = 11.0;
 const FW     = 6.8;
 const FH_MAX = 6.5;
 
+/* ─── Movement boundaries (keep camera inside the room) ─── */
+const YAW_LIMIT = Math.PI * 0.34;  // max look-around angle (~61°) — can't spin to the void
+const Z_MAX     = 2.0;             // nearest the entrance the camera may stand
+
 /* ─── 4 gold frame styles ─── */
 const STYLES = [
   // 0 · thin polished gold
@@ -362,7 +366,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
 
   const { startTransition } = useGalleryTransition();
 
-  const [targetZ,    setTargetZ]    = useState(3.5);
+  const [targetZ,    setTargetZ]    = useState(Z_MAX);
   const [targetYaw,  setTargetYaw]  = useState(0);
   const [zooming,    setZooming]    = useState(false);
   const [showUpload, setShowUpload] = useState(false);
@@ -421,8 +425,8 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       if (!transitionRef.current && !dragging.current) {
         const xf = edgeFactor(cursorRef.current.x);
         const yf = edgeFactor(cursorRef.current.y);
-        if (xf !== 0) setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - xf * 0.007)));
-        if (yf !== 0) setTargetZ(z => Math.min(3.5, Math.max(minZ, z + yf * 0.065)));
+        if (xf !== 0) setTargetYaw(y => Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, y - xf * 0.007)));
+        if (yf !== 0) setTargetZ(z => Math.min(Z_MAX, Math.max(minZ, z + yf * 0.065)));
         if (++frame % 3 === 0) setJoy({ x: xf, y: yf });
       }
       motionRAF.current = requestAnimationFrame(tick);
@@ -439,8 +443,8 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       const gx = Math.max(-35, Math.min(35, e.gamma ?? 0)) / 35;
       const gy = Math.max(-25, Math.min(25, (e.beta ?? 45) - 45)) / 25;
       const D = 0.15;
-      if (Math.abs(gx) > D) setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - gx * 0.012)));
-      if (Math.abs(gy) > D) setTargetZ(z => Math.min(3.5, Math.max(minZ, z + gy * 0.1)));
+      if (Math.abs(gx) > D) setTargetYaw(y => Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, y - gx * 0.012)));
+      if (Math.abs(gy) > D) setTargetZ(z => Math.min(Z_MAX, Math.max(minZ, z + gy * 0.1)));
     };
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       DeviceOrientationEvent.requestPermission().then(p => { if (p === 'granted') window.addEventListener('deviceorientation', handler); }).catch(() => {});
@@ -455,15 +459,15 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
     const onWheel = (e) => {
       if (transitionRef.current) return;
       e.preventDefault();
-      setTargetZ(z   => Math.min(3.5, Math.max(minZ, z - e.deltaY * 0.016)));
-      setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - e.deltaX * 0.004)));
+      setTargetZ(z   => Math.min(Z_MAX, Math.max(minZ, z - e.deltaY * 0.016)));
+      setTargetYaw(y => Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, y - e.deltaX * 0.004)));
     };
     const onKey = (e) => {
       if (transitionRef.current) return;
       if (e.key === 'ArrowUp'    || e.key === 'w') setTargetZ(z   => Math.max(minZ, z - 3.5));
-      if (e.key === 'ArrowDown'  || e.key === 's') setTargetZ(z   => Math.min(3.5,  z + 3.5));
-      if (e.key === 'ArrowLeft'  || e.key === 'a') setTargetYaw(y => Math.min( Math.PI * 0.55, y + 0.25));
-      if (e.key === 'ArrowRight' || e.key === 'd') setTargetYaw(y => Math.max(-Math.PI * 0.55, y - 0.25));
+      if (e.key === 'ArrowDown'  || e.key === 's') setTargetZ(z   => Math.min(Z_MAX,  z + 3.5));
+      if (e.key === 'ArrowLeft'  || e.key === 'a') setTargetYaw(y => Math.min( YAW_LIMIT, y + 0.25));
+      if (e.key === 'ArrowRight' || e.key === 'd') setTargetYaw(y => Math.max(-YAW_LIMIT, y - 0.25));
     };
     window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKey);
@@ -477,7 +481,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
     if (!dragging.current || transitionRef.current) return;
     const dx = e.clientX - lastMX.current;
     lastMX.current = e.clientX;
-    setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - dx * 0.004)));
+    setTargetYaw(y => Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, y - dx * 0.004)));
   };
   const onMouseUp = () => { dragging.current = false; };
 
@@ -488,8 +492,8 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
     const dx = touchRef.current.x - e.touches[0].clientX;
     const dy = touchRef.current.y - e.touches[0].clientY;
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    setTargetZ(z   => Math.min(3.5, Math.max(minZ, z - dy * 0.04)));
-    setTargetYaw(y => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, y - dx * 0.006)));
+    setTargetZ(z   => Math.min(Z_MAX, Math.max(minZ, z - dy * 0.04)));
+    setTargetYaw(y => Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, y - dx * 0.006)));
   };
 
   // ── upload / auth close ──
@@ -513,7 +517,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   };
 
   const handleUpload = () => (user ? setShowUpload(true) : setShowAuth(true));
-  const progress = Math.max(0, Math.min(1, (3.5 - targetZ) / (3.5 - minZ)));
+  const progress = Math.max(0, Math.min(1, (Z_MAX - targetZ) / (Z_MAX - minZ)));
 
   /* ─── Hand-gesture navigation (camera window drives the walk) ─── */
   const pinchCooldown = useRef(false);
@@ -532,9 +536,9 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
 
     // Fist = hold position (brake). Otherwise steer + walk.
     if (gesture !== 'fist') {
-      if (xf !== 0) setTargetYaw(v => Math.max(-Math.PI * 0.55, Math.min(Math.PI * 0.55, v - xf * 0.02)));
+      if (xf !== 0) setTargetYaw(v => Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, v - xf * 0.02)));
       // hand up (y small → dy negative) walks forward into the room
-      if (yf !== 0) setTargetZ(v => Math.min(3.5, Math.max(minZ, v + yf * 0.14)));
+      if (yf !== 0) setTargetZ(v => Math.min(Z_MAX, Math.max(minZ, v + yf * 0.14)));
     }
     setJoy({ x: xf, y: yf });
 
@@ -564,7 +568,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
 
   return (
     <div
-      style={{ width: '100vw', height: '100vh', background: '#000', position: 'relative', overflow: 'hidden', cursor: 'grab' }}
+      style={{ width: '100vw', height: '100vh', background: '#f0f0ef', position: 'relative', overflow: 'hidden', cursor: 'grab' }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -626,23 +630,6 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
           }}
         >
           ✋ {motionOn ? 'Motion · On' : 'Motion'}
-        </button>
-        <button
-          onClick={handleUpload}
-          style={{
-            pointerEvents: 'all',
-            background: 'transparent',
-            border: '1px solid rgba(0,0,0,0.18)',
-            borderRadius: 99, cursor: 'pointer',
-            color: '#555',
-            fontSize: '0.62rem', letterSpacing: '0.22em', fontWeight: 500,
-            fontFamily: '"Fraunces", serif',
-            padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
-            transition: 'all 0.25s ease',
-          }}
-        >
-          <span style={{ fontSize: '0.85rem', lineHeight: 1 }}>+</span>
-          {user ? 'Upload Work' : 'Sign in to Upload'}
         </button>
       </div>
 
@@ -711,7 +698,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       {/* nav arrows */}
       {[
         { label: '↑', action: () => setTargetZ(z => Math.max(minZ, z - 3.5)), top: 'calc(50% - 2.8rem)' },
-        { label: '↓', action: () => setTargetZ(z => Math.min(3.5,  z + 3.5)), top: 'calc(50% + 0.6rem)' },
+        { label: '↓', action: () => setTargetZ(z => Math.min(Z_MAX,  z + 3.5)), top: 'calc(50% + 0.6rem)' },
       ].map(({ label, action, top }) => (
         <button key={label} onClick={action} style={{
           position: 'absolute', right: '1.5rem', top,
