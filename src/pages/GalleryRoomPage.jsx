@@ -614,24 +614,35 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
           onClick={() => setMotionOn((m) => !m)}
           style={{
             pointerEvents: 'all',
-            background: motionOn ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.85)',
+            background: motionOn ? '#111' : 'transparent',
             backdropFilter: 'blur(8px)',
-            border: `1px solid ${motionOn ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.12)'}`,
+            border: `1px solid ${motionOn ? '#111' : 'rgba(0,0,0,0.18)'}`,
             borderRadius: 99, cursor: 'pointer',
-            color: motionOn ? '#333' : '#888',
-            fontSize: '0.6rem', letterSpacing: '0.18em', fontWeight: 700,
-            padding: '0.35rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.3rem',
+            color: motionOn ? '#fff' : '#555',
+            fontSize: '0.62rem', letterSpacing: '0.22em', fontWeight: 500,
+            fontFamily: '"Fraunces", serif',
+            padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+            transition: 'all 0.25s ease',
           }}
         >
-          ✋ {motionOn ? 'MOTION · ON' : 'MOTION'}
+          ✋ {motionOn ? 'Motion · On' : 'Motion'}
         </button>
         <button
           onClick={handleUpload}
-          className="upload-btn"
-          style={{ pointerEvents: 'all' }}
+          style={{
+            pointerEvents: 'all',
+            background: 'transparent',
+            border: '1px solid rgba(0,0,0,0.18)',
+            borderRadius: 99, cursor: 'pointer',
+            color: '#555',
+            fontSize: '0.62rem', letterSpacing: '0.22em', fontWeight: 500,
+            fontFamily: '"Fraunces", serif',
+            padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+            transition: 'all 0.25s ease',
+          }}
         >
-          <span className="upload-icon">+</span>
-          {user ? 'UPLOAD WORK' : 'SIGN IN TO UPLOAD'}
+          <span style={{ fontSize: '0.85rem', lineHeight: 1 }}>+</span>
+          {user ? 'Upload Work' : 'Sign in to Upload'}
         </button>
       </div>
 
@@ -643,12 +654,13 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       {/* hint */}
       <div style={{
         position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
-        color: 'rgba(0,0,0,0.28)', fontSize: '0.62rem', letterSpacing: '0.13em', pointerEvents: 'none', whiteSpace: 'nowrap',
-        transition: 'opacity 0.3s',
+        color: 'rgba(0,0,0,0.4)', fontSize: '0.68rem', letterSpacing: '0.14em',
+        fontFamily: '"Fraunces", serif', fontStyle: 'italic',
+        pointerEvents: 'none', whiteSpace: 'nowrap', transition: 'opacity 0.3s',
       }}>
         {motionOn
-          ? '✋ MOVE HAND TO STEER · RAISE HAND TO WALK · PINCH TO ENTER 3D'
-          : 'SCROLL ↑↓ TO WALK · SCROLL ←→ OR DRAG TO LOOK · CLICK ARTWORK TO VIEW IN 3D'}
+          ? 'Move hand to steer · raise hand to walk · pinch to enter'
+          : 'Scroll to walk · drag to look · click a work to view in 3D'}
       </div>
 
       {/* Motion control visuals */}
