@@ -23,36 +23,73 @@ const FH_MAX = 6.5;
 const YAW_LIMIT = Math.PI * 0.34;  // max look-around angle (~61°) — can't spin to the void
 const Z_MAX     = 2.0;             // nearest the entrance the camera may stand
 
-/* ─── 4 gold frame styles ─── */
+/* ─── Museum-grade frame styles (MoMA / Getty / Louvre) ─────────────
+ * Heavier, more ornate profiles. Flags:
+ *   lip     — stepped darker outer moulding (adds carved depth)
+ *   corners — protruding gold corner bosses (baroque cartouches)
+ *   goldBead— bright inner bead line around the mat
+ *   mat     — mat-board colour (null = none)
+ *   artScale— shrink artwork inside frame to reveal a wide mat
+ */
 const STYLES = [
-  // 0 · thin polished gold
+  // 0 · Ornate baroque gold — heavy carved (Louvre)
   {
-    sizeMult: 1.0, border: 0.16, depth: 0.06,
-    color: '#c8a455', hoverColor: '#e4c060',
-    roughness: 0.12, metalness: 0.95,
-    mat: null, goldBead: false, beadColor: '#c9a84c',
+    sizeMult: 1.02, border: 0.78, depth: 0.24,
+    color: '#b8912f', hoverColor: '#d4ab42',
+    roughness: 0.34, metalness: 0.9,
+    mat: '#f6f1e6', goldBead: true, beadColor: '#dcbb4e',
+    lip: true, corners: true, artScale: 1,
   },
-  // 1 · antique ornate gold with mat
+  // 1 · Antique deep-carved gold with mat (Getty)
   {
-    sizeMult: 0.88, border: 0.60, depth: 0.12,
-    color: '#8b6914', hoverColor: '#a07820',
-    roughness: 0.42, metalness: 0.82,
-    mat: '#f4efe5', goldBead: true, beadColor: '#c9a84c',
+    sizeMult: 0.9, border: 0.92, depth: 0.28,
+    color: '#8a6a1e', hoverColor: '#a68128',
+    roughness: 0.44, metalness: 0.84,
+    mat: '#f2ede1', goldBead: true, beadColor: '#cdac48',
+    lip: true, corners: true, artScale: 1,
   },
-  // 2 · champagne gold medium
+  // 2 · Modern black + wide white mat (Klimt drawing / MoMA works on paper)
   {
-    sizeMult: 1.06, border: 0.40, depth: 0.09,
-    color: '#c8a84c', hoverColor: '#d9bc5e',
-    roughness: 0.28, metalness: 0.88,
-    mat: '#fdfaf4', goldBead: false, beadColor: '#c9a84c',
+    sizeMult: 0.82, border: 0.2, depth: 0.16,
+    color: '#161616', hoverColor: '#333333',
+    roughness: 0.5, metalness: 0.15,
+    mat: '#ffffff', goldBead: false, beadColor: '#ffffff',
+    lip: false, corners: false, artScale: 0.68,
   },
-  // 3 · deep burnished gold with ornate bead
+  // 3 · Slim white modern (Mondrian / contemporary)
   {
-    sizeMult: 0.95, border: 0.52, depth: 0.10,
-    color: '#7c5e1a', hoverColor: '#9a7828',
-    roughness: 0.25, metalness: 0.92,
-    mat: '#fffdf6', goldBead: true, beadColor: '#e8c84a',
+    sizeMult: 0.8, border: 0.16, depth: 0.14,
+    color: '#f4f4f1', hoverColor: '#ffffff',
+    roughness: 0.85, metalness: 0.0,
+    mat: null, goldBead: false, beadColor: '#ffffff',
+    lip: false, corners: false, artScale: 1,
   },
+  // 4 · Champagne silver-gold, stepped (MoMA)
+  {
+    sizeMult: 1.06, border: 0.52, depth: 0.2,
+    color: '#c9b98f', hoverColor: '#e0d0a2',
+    roughness: 0.3, metalness: 0.86,
+    mat: '#fdfbf5', goldBead: true, beadColor: '#d8caa0',
+    lip: true, corners: false, artScale: 1,
+  },
+  // 5 · Very heavy carved wood-gold (Louvre grand format)
+  {
+    sizeMult: 0.98, border: 1.04, depth: 0.32,
+    color: '#6e5320', hoverColor: '#8a6a28',
+    roughness: 0.4, metalness: 0.8,
+    mat: '#fffdf6', goldBead: true, beadColor: '#e6c24c',
+    lip: true, corners: true, artScale: 1,
+  },
+];
+
+/* ─── Hanging variation (size + height) for gallery-wall layering ─── */
+const VARIATION = [
+  { y:  0.00, scale: 1.05 },
+  { y:  0.75, scale: 0.68 },
+  { y: -0.35, scale: 1.28 },
+  { y:  0.42, scale: 0.82 },
+  { y: -0.12, scale: 1.10 },
+  { y:  0.55, scale: 0.74 },
 ];
 
 /* ─── Safe texture loader — no Suspense, handles errors + oversized images ─── */
@@ -167,19 +204,89 @@ function GoldAura({ fw, fh, b, depth, zOffset }) {
   );
 }
 
-/* ─── Artistic frame ─── */
-function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
+/* ─── Corner boss — small protruding cartouche for ornate frames ─── */
+function CornerBoss({ x, y, size, depth, color }) {
+  return (
+    <mesh position={[x, y, depth * 0.5]} rotation={[0, 0, Math.PI / 4]}>
+      <boxGeometry args={[size, size, depth * 0.7]} />
+      <meshStandardMaterial color={color} metalness={0.9} roughness={0.28}
+        emissive="#7a5a18" emissiveIntensity={0.2} />
+    </mesh>
+  );
+}
+
+/* ─── Museum wall label — printed beside the artwork (Getty / MoMA) ─── */
+function WallLabel({ artwork, x, halfH }) {
+  const hasTitle = !!artwork.title;
+  const hasDesc  = !!artwork.description;
+  const lines    = [];
+  // Title (italic-ish, dark)
+  return (
+    <group position={[x, halfH * 0.35, 0.02]}>
+      {/* thin accent rule */}
+      <mesh position={[0, 0.34, 0]}>
+        <boxGeometry args={[0.9, 0.012, 0.004]} />
+        <meshBasicMaterial color="#8a8a8a" />
+      </mesh>
+
+      <Text fontSize={0.15} color="#1a1a1a" anchorX="left" anchorY="top"
+        maxWidth={2.1} position={[0, 0.22, 0]} font={undefined} fontWeight={700}>
+        {artwork.artist || 'Unknown Artist'}
+      </Text>
+
+      <Text fontSize={0.115} color="#444" anchorX="left" anchorY="top"
+        maxWidth={2.1} position={[0, -0.04, 0]}>
+        {hasTitle ? artwork.title : 'Untitled'}{artwork.year ? `, ${artwork.year}` : ''}
+      </Text>
+
+      {artwork.medium && (
+        <Text fontSize={0.088} color="#777" anchorX="left" anchorY="top"
+          maxWidth={2.1} position={[0, -0.24, 0]}>
+          {artwork.medium}
+        </Text>
+      )}
+
+      {hasDesc ? (
+        <Text fontSize={0.082} color="#666" anchorX="left" anchorY="top"
+          maxWidth={2.2} lineHeight={1.35} position={[0, -0.42, 0]}>
+          {String(artwork.description).slice(0, 220)}
+        </Text>
+      ) : (
+        /* reserved blank label space — faint placeholder rules */
+        <group position={[0, -0.42, 0]}>
+          {[0, 1, 2].map(i => (
+            <mesh key={i} position={[0, -i * 0.16, 0]}>
+              <boxGeometry args={[2.0 - i * 0.35, 0.008, 0.003]} />
+              <meshBasicMaterial color="#cfcfcf" />
+            </mesh>
+          ))}
+        </group>
+      )}
+    </group>
+  );
+}
+
+/* ─── Museum-grade artistic frame with size/height variation ─── */
+function Frame({ artwork, position, rotY, onSelect, styleIdx, scaleMult = 1 }) {
   const [hov, setHov] = useState(false);
   useEffect(() => {
     document.body.style.cursor = hov ? 'pointer' : 'auto';
     return () => { document.body.style.cursor = 'auto'; };
   }, [hov]);
 
-  const s      = STYLES[styleIdx % 4];
-  const fw     = FW * s.sizeMult;
-  const fh     = Math.min(fw / (artwork.aspectRatio ?? 1.35), FH_MAX * s.sizeMult);
-  const b      = s.border;
-  const zOffset = position[2]; // world-Z for glow desync
+  const s      = STYLES[styleIdx % STYLES.length];
+  const fw     = FW * s.sizeMult * scaleMult;
+  const fh     = Math.min(fw / (artwork.aspectRatio ?? 1.35), FH_MAX * s.sizeMult * scaleMult);
+  const b      = s.border * scaleMult;
+  const zOffset = position[2];
+
+  // artwork (possibly shrunk to reveal a wide mat, e.g. works on paper)
+  const artFw = fw * (s.artScale ?? 1);
+  const artFh = fh * (s.artScale ?? 1);
+
+  const halfW = (fw + b) / 2;
+  const halfH = (fh + b) / 2;
+  const cornerSize = b * 1.15;
 
   return (
     <group
@@ -189,76 +296,85 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx }) {
       onPointerOver={() => setHov(true)}
       onPointerOut={() => setHov(false)}
     >
-      {/* always-on gold glow aura */}
-      <GoldAura fw={fw} fh={fh} b={b} depth={s.depth} zOffset={zOffset} />
+      {/* faint aura only for gilt frames */}
+      {s.metalness > 0.5 && (
+        <GoldAura fw={fw} fh={fh} b={b} depth={s.depth} zOffset={zOffset} />
+      )}
 
-      {/* outer frame body — emissive so it glows from within */}
+      {/* stepped darker outer lip — carved depth */}
+      {s.lip && (
+        <mesh position={[0, 0, -s.depth * 0.25]}>
+          <boxGeometry args={[fw + b * 1.8, fh + b * 1.8, s.depth * 0.6]} />
+          <meshStandardMaterial
+            color={hov ? s.hoverColor : s.color}
+            roughness={Math.min(1, s.roughness + 0.15)}
+            metalness={s.metalness * 0.85}
+            emissive="#5a4212" emissiveIntensity={0.12}
+          />
+        </mesh>
+      )}
+
+      {/* outer frame body */}
       <mesh>
         <boxGeometry args={[fw + b, fh + b, s.depth]} />
         <meshStandardMaterial
           color={hov ? s.hoverColor : s.color}
           roughness={s.roughness}
           metalness={s.metalness}
-          emissive="#8b6020"
-          emissiveIntensity={hov ? 0.45 : 0.18}
+          emissive={s.metalness > 0.5 ? '#8b6020' : '#000000'}
+          emissiveIntensity={hov ? 0.4 : 0.16}
         />
       </mesh>
+
+      {/* ornate corner bosses */}
+      {s.corners && [
+        [ halfW - cornerSize * 0.3,  halfH - cornerSize * 0.3],
+        [-halfW + cornerSize * 0.3,  halfH - cornerSize * 0.3],
+        [ halfW - cornerSize * 0.3, -halfH + cornerSize * 0.3],
+        [-halfW + cornerSize * 0.3, -halfH + cornerSize * 0.3],
+      ].map(([cx, cy], i) => (
+        <CornerBoss key={i} x={cx} y={cy} size={cornerSize} depth={s.depth}
+          color={hov ? s.hoverColor : s.beadColor} />
+      ))}
 
       {/* gold inner bead */}
       {s.goldBead && (
         <mesh position={[0, 0, s.depth * 0.42]}>
-          <boxGeometry args={[fw + b * 0.55, fh + b * 0.55, 0.013]} />
+          <boxGeometry args={[fw + b * 0.4, fh + b * 0.4, 0.013]} />
           <meshStandardMaterial
             color={s.beadColor} metalness={0.88} roughness={0.22}
-            emissive="#c09030" emissiveIntensity={0.25}
+            emissive="#c09030" emissiveIntensity={0.22}
           />
         </mesh>
       )}
 
       {/* mat board */}
       {s.mat && (
-        <mesh position={[0, 0, s.depth * 0.55]}>
-          <boxGeometry args={[fw + 0.07, fh + 0.07, 0.018]} />
+        <mesh position={[0, 0, s.depth * 0.5]}>
+          <boxGeometry args={[fw + 0.06, fh + 0.06, 0.018]} />
           <meshStandardMaterial color={s.mat} roughness={1} />
         </mesh>
       )}
 
-      {/* artwork image — self-loading with error recovery */}
-      <ArtImage url={artwork.originalURL} fw={fw} fh={fh} depth={s.depth} />
+      {/* artwork image */}
+      <ArtImage url={artwork.originalURL} fw={artFw} fh={artFh} depth={s.depth} />
 
       {/* top-edge highlight */}
-      <mesh position={[0, (fh + b) / 2, s.depth * 0.45]}>
+      <mesh position={[0, halfH, s.depth * 0.45]}>
         <boxGeometry args={[fw + b, 0.016, 0.016]} />
         <meshStandardMaterial color="#ffffff" roughness={0.12} metalness={0.4} opacity={0.22} transparent />
       </mesh>
 
-      {/* hover: stronger gold glow outline */}
+      {/* hover glow */}
       {hov && (
         <mesh position={[0, 0, s.depth * 0.5 + 0.02]}>
           <planeGeometry args={[fw + b + 0.9, fh + b + 0.9]} />
-          <meshBasicMaterial color="#d4a830" opacity={0.18} transparent depthWrite={false} />
+          <meshBasicMaterial color="#d4a830" opacity={0.16} transparent depthWrite={false} />
         </mesh>
       )}
-    </group>
-  );
-}
 
-/* ─── Label below frame ─── */
-function FrameLabel({ artwork, position, rotY, styleIdx }) {
-  const s  = STYLES[styleIdx % 4];
-  const fw = FW * s.sizeMult;
-  const fh = Math.min(fw / (artwork.aspectRatio ?? 1.35), FH_MAX * s.sizeMult);
-  const y  = position[1] - (fh + s.border) / 2 - 0.48;
-  return (
-    <group position={[position[0], y, position[2]]} rotation={[0, rotY, 0]}>
-      <Text fontSize={0.15} color="#222" anchorX="center" anchorY="top" maxWidth={fw}>
-        {artwork.title ?? ''}
-      </Text>
-      {artwork.artist && (
-        <Text position={[0, -0.22, 0]} fontSize={0.11} color="#888" anchorX="center" anchorY="top">
-          {artwork.artist}
-        </Text>
-      )}
+      {/* museum wall label — printed on the wall to the right of the frame */}
+      <WallLabel artwork={artwork} x={halfW + 0.55} halfH={fh} />
     </group>
   );
 }
@@ -266,7 +382,7 @@ function FrameLabel({ artwork, position, rotY, styleIdx }) {
 /* ─── Room shell with strong floor shadow ─── */
 function RoomShell({ length }) {
   const mid = -length / 2;
-  const wallMat = { color: '#ffffff', roughness: 0.95 };
+  const wallMat = { color: '#f4f1ea', roughness: 0.96 };  // warm gallery white
   return (
     <>
       {/* walls */}
@@ -278,14 +394,58 @@ function RoomShell({ length }) {
       {/* floor */}
       <mesh position={[0, -RH / 2, mid]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[HW * 2, length]} />
-        <meshStandardMaterial color="#cccccc" roughness={0.88} />
+        <meshStandardMaterial color="#6b4e34" roughness={0.62} metalness={0.04} />
       </mesh>
+
+      {/* wood plank seams — long strips running down the corridor */}
+      {Array.from({ length: 9 }, (_, i) => {
+        const x = -HW + (i + 1) * (HW * 2 / 10);
+        return (
+          <mesh key={`plank${i}`} position={[x, -RH / 2 + 0.01, mid]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.04, length]} />
+            <meshStandardMaterial color="#4f3927" roughness={0.7} />
+          </mesh>
+        );
+      })}
 
       {/* ceiling */}
       <mesh position={[0, RH / 2, mid]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[HW * 2, length]} />
-        <meshStandardMaterial color="#ffffff" roughness={1} />
+        <meshStandardMaterial color="#eceae4" roughness={1} />
       </mesh>
+
+      {/* ── Skylight: recessed luminous glass panel down the centre ── */}
+      {/* glowing sky panel, slightly below ceiling */}
+      <mesh position={[0, RH / 2 - 0.08, mid]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[HW * 0.9, length - GAP]} />
+        <meshBasicMaterial color="#eaf1f7" />
+      </mesh>
+      {/* soft cool sky tint fading in from the panel */}
+      <mesh position={[0, RH / 2 - 0.09, mid]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[HW * 0.9, length - GAP]} />
+        <meshBasicMaterial color="#bcd4ec" transparent opacity={0.5} depthWrite={false} />
+      </mesh>
+      {/* metal mullions across the skylight (rungs) */}
+      {Array.from({ length: Math.ceil(length / 3.2) }, (_, i) => (
+        <mesh key={`mul${i}`} position={[0, RH / 2 - 0.05, -(i * 3.2 + 1)]}>
+          <boxGeometry args={[HW * 0.92, 0.06, 0.1]} />
+          <meshStandardMaterial color="#d8d8d4" roughness={0.6} metalness={0.3} />
+        </mesh>
+      ))}
+      {/* two longitudinal mullions */}
+      {[-HW * 0.3, HW * 0.3].map((x, i) => (
+        <mesh key={`lm${i}`} position={[x, RH / 2 - 0.05, mid]}>
+          <boxGeometry args={[0.08, 0.06, length - GAP]} />
+          <meshStandardMaterial color="#d8d8d4" roughness={0.6} metalness={0.3} />
+        </mesh>
+      ))}
+      {/* raised curb around the skylight well */}
+      {[-HW * 0.46, HW * 0.46].map((x, i) => (
+        <mesh key={`curb${i}`} position={[x, RH / 2 - 0.28, mid]}>
+          <boxGeometry args={[0.12, 0.55, length - GAP]} />
+          <meshStandardMaterial color="#e2e0da" roughness={1} />
+        </mesh>
+      ))}
 
       {/* floor-wall shadow strips */}
       <mesh position={[-HW + 0.022, -RH / 2 + 0.07, mid]}>
@@ -320,21 +480,41 @@ function RoomShell({ length }) {
   );
 }
 
-/* ─── Ceiling lights ─── */
+/* ─── Lighting: warm ambient + cool skylight wash + warm track spots ─── */
 function CeilingLights({ length }) {
   const count = Math.ceil(length / 5);
   return (
     <>
-      <ambientLight intensity={3.5} color="#ffffff" />
-      <directionalLight position={[0, 14, 2]} intensity={1.0} color="#ffffff" />
+      {/* warm base ambience — no longer clinical white */}
+      <ambientLight intensity={2.4} color="#fff2df" />
+      {/* cool daylight pouring down from the skylight */}
+      <directionalLight position={[0, 16, 2]} intensity={1.3} color="#dce8f5" />
+      {/* soft warm fill from the front */}
+      <directionalLight position={[0, 6, 10]} intensity={0.4} color="#ffdcae" />
+
+      {/* skylight glow — cool line-source running along the ceiling well */}
       {Array.from({ length: count }, (_, i) => (
-        <pointLight key={i} position={[0, RH / 2 - 0.3, -(i * 5 + 2)]} intensity={90} distance={20} decay={2} color="#ffffff" />
+        <pointLight key={`sky${i}`} position={[0, RH / 2 - 0.6, -(i * 5 + 2)]}
+          intensity={55} distance={22} decay={2} color="#e6eff9" />
       ))}
+
+      {/* warm wall-wash track spots on each side (grazing the artworks) */}
       {Array.from({ length: count }, (_, i) => (
-        <mesh key={`d${i}`} position={[0, RH / 2 - 0.02, -(i * 5 + 2)]} rotation={[Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.18, 24]} />
-          <meshStandardMaterial color="#e8e8e8" emissive="#ffffff" emissiveIntensity={0.6} />
-        </mesh>
+        <group key={`spot${i}`}>
+          <pointLight position={[-HW + 3, RH / 2 - 1.5, -(i * 5 + 2)]}
+            intensity={38} distance={16} decay={2} color="#ffe4bd" />
+          <pointLight position={[ HW - 3, RH / 2 - 1.5, -(i * 5 + 2)]}
+            intensity={38} distance={16} decay={2} color="#ffe4bd" />
+          {/* track-light fixtures (small warm emissive nubs) */}
+          <mesh position={[-HW + 2, RH / 2 - 1.2, -(i * 5 + 2)]}>
+            <sphereGeometry args={[0.12, 12, 12]} />
+            <meshStandardMaterial color="#3a3a3a" emissive="#ffcf8f" emissiveIntensity={0.9} />
+          </mesh>
+          <mesh position={[ HW - 2, RH / 2 - 1.2, -(i * 5 + 2)]}>
+            <sphereGeometry args={[0.12, 12, 12]} />
+            <meshStandardMaterial color="#3a3a3a" emissive="#ffcf8f" emissiveIntensity={0.9} />
+          </mesh>
+        </group>
       ))}
     </>
   );
@@ -586,22 +766,18 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         <RoomShell length={roomLen} />
 
         {leftWall.map((art, i) => {
-          const si = (i * 2) % 4;
+          const si = (i * 2) % STYLES.length;
+          const v  = VARIATION[i % VARIATION.length];
           const z  = -(i * GAP + GAP);
-          return <Frame key={art.id} artwork={art} position={[-HW + 0.1, EYE + 0.4, z]} rotY={Math.PI / 2} styleIdx={si} onSelect={() => handleFrameClick(art, z, 'left')} />;
+          return <Frame key={art.id} artwork={art} position={[-HW + 0.1, EYE + 0.4 + v.y, z]} rotY={Math.PI / 2} styleIdx={si} scaleMult={v.scale} onSelect={() => handleFrameClick(art, z, 'left')} />;
         })}
-        {leftWall.map((art, i) => (
-          <FrameLabel key={`ll-${art.id}`} artwork={art} position={[-HW + 0.1, EYE + 0.4, -(i * GAP + GAP)]} rotY={Math.PI / 2} styleIdx={(i * 2) % 4} />
-        ))}
 
         {rightWall.map((art, i) => {
-          const si = (i * 2 + 1) % 4;
+          const si = (i * 2 + 3) % STYLES.length;
+          const v  = VARIATION[(i + 3) % VARIATION.length];
           const z  = -(i * GAP + GAP * 1.5);
-          return <Frame key={art.id} artwork={art} position={[HW - 0.1, EYE + 0.4, z]} rotY={-Math.PI / 2} styleIdx={si} onSelect={() => handleFrameClick(art, z, 'right')} />;
+          return <Frame key={art.id} artwork={art} position={[HW - 0.1, EYE + 0.4 + v.y, z]} rotY={-Math.PI / 2} styleIdx={si} scaleMult={v.scale} onSelect={() => handleFrameClick(art, z, 'right')} />;
         })}
-        {rightWall.map((art, i) => (
-          <FrameLabel key={`rl-${art.id}`} artwork={art} position={[HW - 0.1, EYE + 0.4, -(i * GAP + GAP * 1.5)]} rotY={-Math.PI / 2} styleIdx={(i * 2 + 1) % 4} />
-        ))}
       </Canvas>
 
       {/* Site nav — sticky over the canvas with solid white block */}
