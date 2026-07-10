@@ -552,6 +552,92 @@ const StaticScene = memo(function StaticScene({ leftWall, rightWall, roomLen, on
   );
 });
 
+/* ─── Intro "知音" guide — control primer shown before entering the hall ── */
+function IntroGuide({ onEnter }) {
+  const serif = '"Fraunces", serif';
+  const Item = ({ glyph, en, zh }) => (
+    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+      <span style={{ fontSize: 18, lineHeight: 1.2, width: 26, textAlign: 'center', flexShrink: 0 }}>{glyph}</span>
+      <div>
+        <div style={{ fontFamily: serif, fontSize: '0.95rem', color: '#1a1a1a', lineHeight: 1.35 }}>{en}</div>
+        <div style={{ fontSize: '0.72rem', color: '#8a8a8a', letterSpacing: '0.02em', marginTop: 2 }}>{zh}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(244,241,234,0.86)', backdropFilter: 'blur(16px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '2rem', animation: 'introFade 0.5s ease both',
+    }}>
+      <div style={{
+        maxWidth: 720, width: '100%',
+        background: '#fbf9f4', border: '1px solid rgba(0,0,0,0.08)',
+        borderRadius: 18, padding: 'clamp(1.8rem, 4vw, 3rem)',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.18)',
+      }}>
+        <p style={{ fontSize: '0.62rem', letterSpacing: '0.32em', color: '#a08c58', fontWeight: 700, marginBottom: 14 }}>
+          WALK-IN GALLERY · 步入展厅
+        </p>
+        <h2 style={{ fontFamily: serif, fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)', color: '#141414', lineHeight: 1.05, marginBottom: 10 }}>
+          Before you enter
+        </h2>
+        <p style={{ fontFamily: serif, fontStyle: 'italic', color: '#666', fontSize: '0.98rem', marginBottom: 26, maxWidth: 520 }}>
+          A quiet hall of papercut works awaits. Here is how to move through it — 一座剪纸静室,请先熟悉如何漫步其间。
+        </p>
+
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '1.6rem 2.4rem', marginBottom: 30,
+        }}>
+          {/* Manual controls */}
+          <div>
+            <p style={{ fontSize: '0.6rem', letterSpacing: '0.24em', color: '#1a1a1a', fontWeight: 700, marginBottom: 14, borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: 8 }}>
+              MANUAL · 手动
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <Item glyph="↕" en="Scroll to walk down the hall" zh="滚动前进 / 后退" />
+              <Item glyph="↔" en="Drag or scroll sideways to look" zh="拖拽或横向滚动转向" />
+              <Item glyph="◱" en="Click a work to view it in 3D" zh="点击作品进入立体视角" />
+            </div>
+          </div>
+
+          {/* Motion controls */}
+          <div>
+            <p style={{ fontSize: '0.6rem', letterSpacing: '0.24em', color: '#1a1a1a', fontWeight: 700, marginBottom: 14, borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: 8 }}>
+              MOTION · 体感
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <Item glyph="✋" en="Toggle “Motion” — a camera window shows you & your hand" zh="开启体感,浮窗显示你与手部骨架" />
+              <Item glyph="🖐" en="Move your hand to steer, raise it to walk" zh="移动手掌转向,抬手前进" />
+              <Item glyph="🤏" en="Pinch to enter the nearest work" zh="捏合进入最近的作品" />
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={onEnter}
+          style={{
+            fontFamily: serif, fontSize: '0.78rem', letterSpacing: '0.22em',
+            background: '#141414', color: '#fff', border: 'none',
+            borderRadius: 99, padding: '0.85rem 2.2rem', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            transition: 'transform 0.2s ease, opacity 0.2s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.opacity = '0.9'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.opacity = '1'; }}
+        >
+          ENTER THE HALL · 进入展厅 <span style={{ fontSize: '1rem' }}>→</span>
+        </button>
+      </div>
+
+      <style>{`@keyframes introFade { from { opacity: 0; } to { opacity: 1; } }`}</style>
+    </div>
+  );
+}
+
 /* ─── Main page ─── */
 export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, onSave, onDelete }) {
   const navigate  = useNavigate();
@@ -568,6 +654,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
   const [editTarget, setEditTarget] = useState(null);
   const [motionOn,   setMotionOn]   = useState(false);
   const [joy,        setJoy]        = useState({ x: 0, y: 0 }); // -1..1 for visual
+  // Intro "知音" guide — shown once per session before entering the hall
+  const [showIntro,  setShowIntro]  = useState(() => {
+    try { return !sessionStorage.getItem('walkin_intro_seen'); } catch { return true; }
+  });
+  const dismissIntro = () => {
+    try { sessionStorage.setItem('walkin_intro_seen', '1'); } catch { /* ignore */ }
+    setShowIntro(false);
+  };
   const transitionRef = useRef(false);
   const cursorRef     = useRef({ x: 0.5, y: 0.5 });
   const motionRAF     = useRef(null);
@@ -911,6 +1005,9 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       {editTarget && (
         <EditModal artwork={editTarget} onClose={() => setEditTarget(null)} onSave={(u) => { onSave(u); setEditTarget(null); }} />
       )}
+
+      {/* Intro "知音" control primer — shown once before entering the hall */}
+      {showIntro && <IntroGuide onEnter={dismissIntro} />}
     </div>
   );
 }
