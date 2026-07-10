@@ -32,53 +32,53 @@ const Z_MAX     = 2.0;             // nearest the entrance the camera may stand
  *   artScale— shrink artwork inside frame to reveal a wide mat
  */
 const STYLES = [
-  // 0 · Ornate baroque gold — heavy carved (Louvre)
+  // 0 · Ornate baroque antique gold — heavy carved (Louvre)
   {
-    sizeMult: 1.02, border: 0.78, depth: 0.24,
-    color: '#b8912f', hoverColor: '#d4ab42',
-    roughness: 0.34, metalness: 0.9,
-    mat: '#f6f1e6', goldBead: true, beadColor: '#dcbb4e',
-    lip: true, corners: true, artScale: 1,
+    sizeMult: 1.02, border: 0.82, depth: 0.26,
+    color: '#8f6a22', hoverColor: '#b3873a', lipColor: '#5e461a',
+    roughness: 0.42, metalness: 0.88,
+    mat: '#f2ecdd', goldBead: true, beadColor: '#c8a23e',
+    lip: true, carved: true, artScale: 1,
   },
-  // 1 · Antique deep-carved gold with mat (Getty)
+  // 1 · Antique deep-carved bronzed gold with mat (Getty)
   {
-    sizeMult: 0.9, border: 0.92, depth: 0.28,
-    color: '#8a6a1e', hoverColor: '#a68128',
-    roughness: 0.44, metalness: 0.84,
-    mat: '#f2ede1', goldBead: true, beadColor: '#cdac48',
-    lip: true, corners: true, artScale: 1,
+    sizeMult: 0.9, border: 0.98, depth: 0.3,
+    color: '#6f521a', hoverColor: '#8f6c26', lipColor: '#453210',
+    roughness: 0.5, metalness: 0.82,
+    mat: '#efe8d8', goldBead: true, beadColor: '#b6923a',
+    lip: true, carved: true, artScale: 1,
   },
   // 2 · Modern black + wide white mat (Klimt drawing / MoMA works on paper)
   {
     sizeMult: 0.82, border: 0.2, depth: 0.16,
-    color: '#161616', hoverColor: '#333333',
+    color: '#141414', hoverColor: '#333333', lipColor: '#0a0a0a',
     roughness: 0.5, metalness: 0.15,
     mat: '#ffffff', goldBead: false, beadColor: '#ffffff',
-    lip: false, corners: false, artScale: 0.68,
+    lip: false, carved: false, artScale: 0.68,
   },
-  // 3 · Slim white modern (Mondrian / contemporary)
+  // 3 · Slim warm-white modern (Mondrian / contemporary)
   {
     sizeMult: 0.8, border: 0.16, depth: 0.14,
-    color: '#f4f4f1', hoverColor: '#ffffff',
+    color: '#eae7df', hoverColor: '#ffffff', lipColor: '#d6d2c8',
     roughness: 0.85, metalness: 0.0,
     mat: null, goldBead: false, beadColor: '#ffffff',
-    lip: false, corners: false, artScale: 1,
+    lip: false, carved: false, artScale: 1,
   },
-  // 4 · Champagne silver-gold, stepped (MoMA)
+  // 4 · Aged champagne gold, stepped + carved (MoMA)
   {
-    sizeMult: 1.06, border: 0.52, depth: 0.2,
-    color: '#c9b98f', hoverColor: '#e0d0a2',
-    roughness: 0.3, metalness: 0.86,
-    mat: '#fdfbf5', goldBead: true, beadColor: '#d8caa0',
-    lip: true, corners: false, artScale: 1,
+    sizeMult: 1.06, border: 0.6, depth: 0.22,
+    color: '#a08c58', hoverColor: '#c2ac74', lipColor: '#6e5e36',
+    roughness: 0.42, metalness: 0.82,
+    mat: '#fbf7ee', goldBead: true, beadColor: '#c4b078',
+    lip: true, carved: true, artScale: 1,
   },
   // 5 · Very heavy carved wood-gold (Louvre grand format)
   {
-    sizeMult: 0.98, border: 1.04, depth: 0.32,
-    color: '#6e5320', hoverColor: '#8a6a28',
-    roughness: 0.4, metalness: 0.8,
-    mat: '#fffdf6', goldBead: true, beadColor: '#e6c24c',
-    lip: true, corners: true, artScale: 1,
+    sizeMult: 0.98, border: 1.12, depth: 0.36,
+    color: '#5a4318', hoverColor: '#7a5c22', lipColor: '#3a2b0e',
+    roughness: 0.46, metalness: 0.78,
+    mat: '#fefbf3', goldBead: true, beadColor: '#c9a63e',
+    lip: true, carved: true, artScale: 1,
   },
 ];
 
@@ -91,6 +91,44 @@ const VARIATION = [
   { y: -0.12, scale: 1.10 },
   { y:  0.55, scale: 0.74 },
 ];
+
+/* ─── Procedural carved-pattern bump map ────────────────────────────
+ * A single shared canvas texture that gives every gilt frame fine
+ * scroll/leaf carving detail via bumpMap — no extra geometry, so it
+ * costs nothing per-frame at render time. Generated lazily once.
+ */
+let _carvedTex = null;
+function carvedBumpTexture() {
+  if (_carvedTex) return _carvedTex;
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, S, S);
+  ctx.lineCap = 'round';
+  const cell = 32;
+  for (let gy = 0; gy < S; gy += cell) {
+    for (let gx = 0; gx < S; gx += cell) {
+      const cx = gx + cell / 2, cy = gy + cell / 2;
+      // raised scroll (light) + recessed shadow (dark) → carved relief
+      ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, 9, Math.PI * 0.15, Math.PI * 1.25); ctx.stroke();
+      ctx.strokeStyle = '#3a3a3a'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, 9, Math.PI * 1.25, Math.PI * 2.15); ctx.stroke();
+      // paired leaf flourishes
+      ctx.strokeStyle = '#cfcfcf'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(gx, gy); ctx.quadraticCurveTo(cx, gy + 7, gx + cell, gy + 1); ctx.stroke();
+      ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(gx, gy + 2); ctx.quadraticCurveTo(cx, gy + 10, gx + cell, gy + 3); ctx.stroke();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(5, 5);
+  _carvedTex = t;
+  return t;
+}
 
 /* ─── Safe texture loader — no Suspense, handles errors + oversized images ─── */
 const MAX_TEX = 2048; // safe WebGL texture dimension for all devices
@@ -172,87 +210,76 @@ function ArtImage({ url, fw, fh, depth }) {
   );
 }
 
-/* ─── Gold glow aura — two translucent planes pulsing out of sync per frame ─── */
-function GoldAura({ fw, fh, b, depth, zOffset }) {
-  const inner = useRef();
-  const outer = useRef();
-  const z = depth * 0.5 + 0.012; // just in front of the frame face
-
-  useFrame(({ clock }) => {
-    // desync each frame by its world-Z so they breathe independently
-    const t     = clock.elapsedTime * 0.55 + zOffset * 0.18;
-    const pulse = Math.sin(t) * 0.5 + 0.5; // 0..1
-    if (inner.current) inner.current.material.opacity = 0.055 + pulse * 0.038;
-    if (outer.current) outer.current.material.opacity = 0.020 + pulse * 0.014;
-  });
-
+/* ─── Gold glow aura — static (no per-frame work) ─── */
+function GoldAura({ fw, fh, b, depth }) {
+  const z = depth * 0.5 + 0.012;
   const w = fw + b;
   const h = fh + b;
   return (
     <group>
-      {/* inner halo — 0.65 units beyond frame edge on each side */}
-      <mesh ref={inner} position={[0, 0, z]}>
+      <mesh position={[0, 0, z]}>
         <planeGeometry args={[w + 0.65, h + 0.65]} />
-        <meshBasicMaterial color="#c8a455" transparent depthWrite={false} />
+        <meshBasicMaterial color="#c8a455" transparent opacity={0.07} depthWrite={false} />
       </mesh>
-      {/* outer soft halo */}
-      <mesh ref={outer} position={[0, 0, z - 0.006]}>
+      <mesh position={[0, 0, z - 0.006]}>
         <planeGeometry args={[w + 1.6, h + 1.6]} />
-        <meshBasicMaterial color="#c8a455" transparent depthWrite={false} />
+        <meshBasicMaterial color="#c8a455" transparent opacity={0.025} depthWrite={false} />
       </mesh>
     </group>
   );
 }
 
-/* ─── Corner boss — small protruding cartouche for ornate frames ─── */
-function CornerBoss({ x, y, size, depth, color }) {
+/* ─── Carved molding — concentric raised ridge rings on the frame face.
+ * Replaces the diamond corner bosses with a repeating carved-pattern
+ * profile (like real museum mouldings). Each ring = 4 thin beveled boxes.
+ */
+function RidgeRing({ w, h, z, thick, color, emissive }) {
+  const matProps = { color, metalness: 0.9, roughness: 0.26, emissive, emissiveIntensity: 0.18 };
   return (
-    <mesh position={[x, y, depth * 0.5]} rotation={[0, 0, Math.PI / 4]}>
-      <boxGeometry args={[size, size, depth * 0.7]} />
-      <meshStandardMaterial color={color} metalness={0.9} roughness={0.28}
-        emissive="#7a5a18" emissiveIntensity={0.2} />
-    </mesh>
+    <group position={[0, 0, z]}>
+      {/* top / bottom rails */}
+      <mesh position={[0,  h / 2, 0]}><boxGeometry args={[w + thick, thick, thick]} /><meshStandardMaterial {...matProps} /></mesh>
+      <mesh position={[0, -h / 2, 0]}><boxGeometry args={[w + thick, thick, thick]} /><meshStandardMaterial {...matProps} /></mesh>
+      {/* left / right rails */}
+      <mesh position={[-w / 2, 0, 0]}><boxGeometry args={[thick, h - thick, thick]} /><meshStandardMaterial {...matProps} /></mesh>
+      <mesh position={[ w / 2, 0, 0]}><boxGeometry args={[thick, h - thick, thick]} /><meshStandardMaterial {...matProps} /></mesh>
+    </group>
   );
 }
 
-/* ─── Museum wall label — printed beside the artwork (Getty / MoMA) ─── */
+/* ─── Museum wall label — printed beside the artwork (Getty / MoMA) ───
+ * troika <Text> is the most expensive thing per frame, so we use only
+ * TWO text meshes per label: a header block (artist / title / medium
+ * combined with newlines) and an optional description.
+ */
 function WallLabel({ artwork, x, halfH }) {
-  const hasTitle = !!artwork.title;
-  const hasDesc  = !!artwork.description;
-  const lines    = [];
-  // Title (italic-ish, dark)
+  const hasDesc = !!artwork.description;
+  const header  = [
+    artwork.artist || 'Unknown Artist',
+    `${artwork.title || 'Untitled'}${artwork.year ? `, ${artwork.year}` : ''}`,
+    artwork.medium || '',
+  ].filter(Boolean).join('\n');
+
   return (
     <group position={[x, halfH * 0.35, 0.02]}>
       {/* thin accent rule */}
-      <mesh position={[0, 0.34, 0]}>
-        <boxGeometry args={[0.9, 0.012, 0.004]} />
+      <mesh position={[0, 0.32, 0]}>
+        <boxGeometry args={[0.85, 0.012, 0.004]} />
         <meshBasicMaterial color="#8a8a8a" />
       </mesh>
 
-      <Text fontSize={0.15} color="#1a1a1a" anchorX="left" anchorY="top"
-        maxWidth={2.1} position={[0, 0.22, 0]} font={undefined} fontWeight={700}>
-        {artwork.artist || 'Unknown Artist'}
+      <Text fontSize={0.13} color="#1a1a1a" anchorX="left" anchorY="top"
+        maxWidth={2.1} lineHeight={1.5} position={[0, 0.2, 0]}>
+        {header}
       </Text>
-
-      <Text fontSize={0.115} color="#444" anchorX="left" anchorY="top"
-        maxWidth={2.1} position={[0, -0.04, 0]}>
-        {hasTitle ? artwork.title : 'Untitled'}{artwork.year ? `, ${artwork.year}` : ''}
-      </Text>
-
-      {artwork.medium && (
-        <Text fontSize={0.088} color="#777" anchorX="left" anchorY="top"
-          maxWidth={2.1} position={[0, -0.24, 0]}>
-          {artwork.medium}
-        </Text>
-      )}
 
       {hasDesc ? (
         <Text fontSize={0.082} color="#666" anchorX="left" anchorY="top"
           maxWidth={2.2} lineHeight={1.35} position={[0, -0.42, 0]}>
-          {String(artwork.description).slice(0, 220)}
+          {String(artwork.description).slice(0, 200)}
         </Text>
       ) : (
-        /* reserved blank label space — faint placeholder rules */
+        /* reserved blank label space — faint placeholder rules (cheap boxes) */
         <group position={[0, -0.42, 0]}>
           {[0, 1, 2].map(i => (
             <mesh key={i} position={[0, -i * 0.16, 0]}>
@@ -278,15 +305,12 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx, scaleMult = 1 }) {
   const fw     = FW * s.sizeMult * scaleMult;
   const fh     = Math.min(fw / (artwork.aspectRatio ?? 1.35), FH_MAX * s.sizeMult * scaleMult);
   const b      = s.border * scaleMult;
-  const zOffset = position[2];
 
   // artwork (possibly shrunk to reveal a wide mat, e.g. works on paper)
   const artFw = fw * (s.artScale ?? 1);
   const artFh = fh * (s.artScale ?? 1);
 
-  const halfW = (fw + b) / 2;
   const halfH = (fh + b) / 2;
-  const cornerSize = b * 1.15;
 
   return (
     <group
@@ -298,7 +322,7 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx, scaleMult = 1 }) {
     >
       {/* faint aura only for gilt frames */}
       {s.metalness > 0.5 && (
-        <GoldAura fw={fw} fh={fh} b={b} depth={s.depth} zOffset={zOffset} />
+        <GoldAura fw={fw} fh={fh} b={b} depth={s.depth} />
       )}
 
       {/* stepped darker outer lip — carved depth */}
@@ -306,44 +330,41 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx, scaleMult = 1 }) {
         <mesh position={[0, 0, -s.depth * 0.25]}>
           <boxGeometry args={[fw + b * 1.8, fh + b * 1.8, s.depth * 0.6]} />
           <meshStandardMaterial
-            color={hov ? s.hoverColor : s.color}
-            roughness={Math.min(1, s.roughness + 0.15)}
+            color={hov ? s.hoverColor : s.lipColor}
+            roughness={Math.min(1, s.roughness + 0.18)}
             metalness={s.metalness * 0.85}
-            emissive="#5a4212" emissiveIntensity={0.12}
+            emissive="#3a2a0c" emissiveIntensity={0.1}
           />
         </mesh>
       )}
 
-      {/* outer frame body */}
+      {/* outer frame body — carved-pattern bump map for fine detail */}
       <mesh>
         <boxGeometry args={[fw + b, fh + b, s.depth]} />
         <meshStandardMaterial
           color={hov ? s.hoverColor : s.color}
           roughness={s.roughness}
           metalness={s.metalness}
-          emissive={s.metalness > 0.5 ? '#8b6020' : '#000000'}
-          emissiveIntensity={hov ? 0.4 : 0.16}
+          emissive={s.metalness > 0.5 ? '#5c3f12' : '#000000'}
+          emissiveIntensity={hov ? 0.3 : 0.1}
+          bumpMap={s.carved ? carvedBumpTexture() : null}
+          bumpScale={s.carved ? 0.05 : 0}
         />
       </mesh>
 
-      {/* ornate corner bosses */}
-      {s.corners && [
-        [ halfW - cornerSize * 0.3,  halfH - cornerSize * 0.3],
-        [-halfW + cornerSize * 0.3,  halfH - cornerSize * 0.3],
-        [ halfW - cornerSize * 0.3, -halfH + cornerSize * 0.3],
-        [-halfW + cornerSize * 0.3, -halfH + cornerSize * 0.3],
-      ].map(([cx, cy], i) => (
-        <CornerBoss key={i} x={cx} y={cy} size={cornerSize} depth={s.depth}
-          color={hov ? s.hoverColor : s.beadColor} />
-      ))}
+      {/* one raised molding step — cheap 3D carved profile (4 boxes) */}
+      {s.carved && (
+        <RidgeRing w={fw + b * 0.66} h={fh + b * 0.66} z={s.depth * 0.5 + 0.006}
+          thick={b * 0.18} color={hov ? s.hoverColor : s.beadColor} emissive="#6e5018" />
+      )}
 
-      {/* gold inner bead */}
+      {/* gold inner bead (sight edge) */}
       {s.goldBead && (
-        <mesh position={[0, 0, s.depth * 0.42]}>
-          <boxGeometry args={[fw + b * 0.4, fh + b * 0.4, 0.013]} />
+        <mesh position={[0, 0, s.depth * 0.44]}>
+          <boxGeometry args={[fw + b * 0.34, fh + b * 0.34, 0.013]} />
           <meshStandardMaterial
-            color={s.beadColor} metalness={0.88} roughness={0.22}
-            emissive="#c09030" emissiveIntensity={0.22}
+            color={s.beadColor} metalness={0.9} roughness={0.24}
+            emissive="#7a5818" emissiveIntensity={0.16}
           />
         </mesh>
       )}
@@ -426,8 +447,8 @@ function RoomShell({ length }) {
         <meshBasicMaterial color="#bcd4ec" transparent opacity={0.5} depthWrite={false} />
       </mesh>
       {/* metal mullions across the skylight (rungs) */}
-      {Array.from({ length: Math.ceil(length / 3.2) }, (_, i) => (
-        <mesh key={`mul${i}`} position={[0, RH / 2 - 0.05, -(i * 3.2 + 1)]}>
+      {Array.from({ length: Math.ceil(length / 6) }, (_, i) => (
+        <mesh key={`mul${i}`} position={[0, RH / 2 - 0.05, -(i * 6 + 2)]}>
           <boxGeometry args={[HW * 0.92, 0.06, 0.1]} />
           <meshStandardMaterial color="#d8d8d4" roughness={0.6} metalness={0.3} />
         </mesh>
@@ -480,41 +501,29 @@ function RoomShell({ length }) {
   );
 }
 
-/* ─── Lighting: warm ambient + cool skylight wash + warm track spots ─── */
+/* ─── Lighting: cheap & warm — a few static lights, no per-segment loop ─
+ * Real-time point lights are O(lights × fragments); the old per-segment
+ * version created ~60 of them and tanked the frame-rate. We now rely on
+ * hemisphere + directional light (which cost the same regardless of room
+ * length) plus a SMALL fixed number of point lights spread down the hall.
+ */
 function CeilingLights({ length }) {
-  const count = Math.ceil(length / 5);
+  // 3–5 point lights total, evenly spaced — independent of room length
+  const NUM = Math.min(5, Math.max(3, Math.round(length / 24)));
+  const step = length / NUM;
   return (
     <>
-      {/* warm base ambience — no longer clinical white */}
-      <ambientLight intensity={2.4} color="#fff2df" />
-      {/* cool daylight pouring down from the skylight */}
-      <directionalLight position={[0, 16, 2]} intensity={1.3} color="#dce8f5" />
-      {/* soft warm fill from the front */}
-      <directionalLight position={[0, 6, 10]} intensity={0.4} color="#ffdcae" />
+      {/* warm sky/ground hemisphere — the workhorse, one light for the whole room */}
+      <hemisphereLight args={['#f3ecdd', '#7a5c3a', 2.6]} />
+      {/* cool daylight from the skylight */}
+      <directionalLight position={[0, 16, 2]} intensity={1.6} color="#dce8f5" />
+      {/* warm fill from the front */}
+      <directionalLight position={[6, 6, 12]} intensity={0.55} color="#ffdcae" />
 
-      {/* skylight glow — cool line-source running along the ceiling well */}
-      {Array.from({ length: count }, (_, i) => (
-        <pointLight key={`sky${i}`} position={[0, RH / 2 - 0.6, -(i * 5 + 2)]}
-          intensity={55} distance={22} decay={2} color="#e6eff9" />
-      ))}
-
-      {/* warm wall-wash track spots on each side (grazing the artworks) */}
-      {Array.from({ length: count }, (_, i) => (
-        <group key={`spot${i}`}>
-          <pointLight position={[-HW + 3, RH / 2 - 1.5, -(i * 5 + 2)]}
-            intensity={38} distance={16} decay={2} color="#ffe4bd" />
-          <pointLight position={[ HW - 3, RH / 2 - 1.5, -(i * 5 + 2)]}
-            intensity={38} distance={16} decay={2} color="#ffe4bd" />
-          {/* track-light fixtures (small warm emissive nubs) */}
-          <mesh position={[-HW + 2, RH / 2 - 1.2, -(i * 5 + 2)]}>
-            <sphereGeometry args={[0.12, 12, 12]} />
-            <meshStandardMaterial color="#3a3a3a" emissive="#ffcf8f" emissiveIntensity={0.9} />
-          </mesh>
-          <mesh position={[ HW - 2, RH / 2 - 1.2, -(i * 5 + 2)]}>
-            <sphereGeometry args={[0.12, 12, 12]} />
-            <meshStandardMaterial color="#3a3a3a" emissive="#ffcf8f" emissiveIntensity={0.9} />
-          </mesh>
-        </group>
+      {/* a few warm accent point lights down the centre (fixed count) */}
+      {Array.from({ length: NUM }, (_, i) => (
+        <pointLight key={i} position={[0, RH / 2 - 1.0, -(i * step + step * 0.5)]}
+          intensity={70} distance={step * 2.4} decay={2} color="#fde7c8" />
       ))}
     </>
   );
@@ -759,6 +768,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       <Canvas
         camera={{ fov: 68, near: 0.05, far: 400 }}
         style={{ width: '100%', height: '100%' }}
+        dpr={[1, 1.5]}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 2.0 }}
       >
         <CameraRig targetZ={targetZ} targetYaw={targetYaw} targetFOV={zooming ? 36 : 68} />
