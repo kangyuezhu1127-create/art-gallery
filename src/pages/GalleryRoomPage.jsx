@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -210,24 +210,6 @@ function ArtImage({ url, fw, fh, depth }) {
   );
 }
 
-/* ─── Gold glow aura — static (no per-frame work) ─── */
-function GoldAura({ fw, fh, b, depth }) {
-  const z = depth * 0.5 + 0.012;
-  const w = fw + b;
-  const h = fh + b;
-  return (
-    <group>
-      <mesh position={[0, 0, z]}>
-        <planeGeometry args={[w + 0.65, h + 0.65]} />
-        <meshBasicMaterial color="#c8a455" transparent opacity={0.07} depthWrite={false} />
-      </mesh>
-      <mesh position={[0, 0, z - 0.006]}>
-        <planeGeometry args={[w + 1.6, h + 1.6]} />
-        <meshBasicMaterial color="#c8a455" transparent opacity={0.025} depthWrite={false} />
-      </mesh>
-    </group>
-  );
-}
 
 /* ─── Carved molding — concentric raised ridge rings on the frame face.
  * Replaces the diamond corner bosses with a repeating carved-pattern
@@ -321,11 +303,6 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx, scaleMult = 1 }) {
       onPointerOver={() => setHov(true)}
       onPointerOut={() => setHov(false)}
     >
-      {/* faint aura only for gilt frames */}
-      {s.metalness > 0.5 && (
-        <GoldAura fw={fw} fh={fh} b={b} depth={s.depth} />
-      )}
-
       {/* stepped darker outer lip — carved depth */}
       {s.lip && (
         <mesh position={[0, 0, -s.depth * 0.25]}>
@@ -436,35 +413,33 @@ function RoomShell({ length }) {
         <meshStandardMaterial color="#eceae4" roughness={1} />
       </mesh>
 
-      {/* ── Skylight: recessed luminous glass panel down the centre ── */}
-      {/* glowing sky panel, slightly below ceiling */}
-      <mesh position={[0, RH / 2 - 0.08, mid]} rotation={[Math.PI / 2, 0, 0]}>
+      {/* ── Skylight: recessed luminous glass panel down the centre ──
+       * Single opaque panel set well below the ceiling (0.35 gap) so it
+       * never z-fights the ceiling, and mullions sit clearly in front of
+       * the panel (another 0.12 gap). No overlapping coplanar layers →
+       * no strobing/flicker. */}
+      <mesh position={[0, RH / 2 - 0.4, mid]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[HW * 0.9, length - GAP]} />
-        <meshBasicMaterial color="#eaf1f7" />
+        <meshBasicMaterial color="#e0eaf4" toneMapped={false} />
       </mesh>
-      {/* soft cool sky tint fading in from the panel */}
-      <mesh position={[0, RH / 2 - 0.09, mid]} rotation={[Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[HW * 0.9, length - GAP]} />
-        <meshBasicMaterial color="#bcd4ec" transparent opacity={0.5} depthWrite={false} />
-      </mesh>
-      {/* metal mullions across the skylight (rungs) */}
+      {/* metal mullions across the skylight (rungs), in front of the panel */}
       {Array.from({ length: Math.ceil(length / 6) }, (_, i) => (
-        <mesh key={`mul${i}`} position={[0, RH / 2 - 0.05, -(i * 6 + 2)]}>
-          <boxGeometry args={[HW * 0.92, 0.06, 0.1]} />
-          <meshStandardMaterial color="#d8d8d4" roughness={0.6} metalness={0.3} />
+        <mesh key={`mul${i}`} position={[0, RH / 2 - 0.28, -(i * 6 + 2)]}>
+          <boxGeometry args={[HW * 0.92, 0.05, 0.06]} />
+          <meshStandardMaterial color="#cfcfcb" roughness={0.6} metalness={0.3} />
         </mesh>
       ))}
       {/* two longitudinal mullions */}
       {[-HW * 0.3, HW * 0.3].map((x, i) => (
-        <mesh key={`lm${i}`} position={[x, RH / 2 - 0.05, mid]}>
-          <boxGeometry args={[0.08, 0.06, length - GAP]} />
-          <meshStandardMaterial color="#d8d8d4" roughness={0.6} metalness={0.3} />
+        <mesh key={`lm${i}`} position={[x, RH / 2 - 0.28, mid]}>
+          <boxGeometry args={[0.06, 0.05, length - GAP]} />
+          <meshStandardMaterial color="#cfcfcb" roughness={0.6} metalness={0.3} />
         </mesh>
       ))}
       {/* raised curb around the skylight well */}
       {[-HW * 0.46, HW * 0.46].map((x, i) => (
-        <mesh key={`curb${i}`} position={[x, RH / 2 - 0.28, mid]}>
-          <boxGeometry args={[0.12, 0.55, length - GAP]} />
+        <mesh key={`curb${i}`} position={[x, RH / 2 - 0.18, mid]}>
+          <boxGeometry args={[0.12, 0.36, length - GAP]} />
           <meshStandardMaterial color="#e2e0da" roughness={1} />
         </mesh>
       ))}
@@ -548,6 +523,35 @@ function CameraRig({ targetZ, targetYaw, targetFOV }) {
   return null;
 }
 
+/* ─── Static scene (room + lights + frames) ──────────────────────────
+ * Memoised so that camera movement — which updates targetZ/targetYaw
+ * state on every scroll/motion tick — does NOT force react-three-fiber
+ * to re-reconcile the ~200 frame/label nodes. Only re-renders when the
+ * artwork list changes. This is the main scrolling-jank fix.
+ */
+const StaticScene = memo(function StaticScene({ leftWall, rightWall, roomLen, onFrameClick }) {
+  return (
+    <>
+      <CeilingLights length={roomLen} />
+      <RoomShell length={roomLen} />
+
+      {leftWall.map((art, i) => {
+        const si = (i * 2) % STYLES.length;
+        const v  = VARIATION[i % VARIATION.length];
+        const z  = -(i * GAP + GAP);
+        return <Frame key={art.id} artwork={art} position={[-HW + 0.1, EYE + 0.4 + v.y, z]} rotY={Math.PI / 2} styleIdx={si} scaleMult={v.scale} onSelect={() => onFrameClick(art, z, 'left')} />;
+      })}
+
+      {rightWall.map((art, i) => {
+        const si = (i * 2 + 3) % STYLES.length;
+        const v  = VARIATION[(i + 3) % VARIATION.length];
+        const z  = -(i * GAP + GAP * 1.5);
+        return <Frame key={art.id} artwork={art} position={[HW - 0.1, EYE + 0.4 + v.y, z]} rotY={-Math.PI / 2} styleIdx={si} scaleMult={v.scale} onSelect={() => onFrameClick(art, z, 'right')} />;
+      })}
+    </>
+  );
+});
+
 /* ─── Main page ─── */
 export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, onSave, onDelete }) {
   const navigate  = useNavigate();
@@ -577,14 +581,14 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
     }
   }, []);
 
-  const leftWall  = artworks.filter((_, i) => i % 2 === 0);
-  const rightWall = artworks.filter((_, i) => i % 2 === 1);
+  const leftWall  = useMemo(() => artworks.filter((_, i) => i % 2 === 0), [artworks]);
+  const rightWall = useMemo(() => artworks.filter((_, i) => i % 2 === 1), [artworks]);
   const maxSlots  = Math.max(leftWall.length, rightWall.length, 1);
   const roomLen   = maxSlots * GAP + GAP * 2;
   const minZ      = -(roomLen - GAP);
 
   /* ─── cinematic transition: camera zoom + persistent artwork overlay ─── */
-  const handleFrameClick = (artwork, frameZ, wallSide) => {
+  const handleFrameClick = useCallback((artwork, frameZ, wallSide) => {
     if (transitionRef.current) return;
     transitionRef.current = true;
     setZooming(true);
@@ -594,7 +598,7 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
       artwork.originalURL,
       () => navigate(`/artwork/${artwork.id}`, { state: { fromGallery: true } }),
     );
-  };
+  }, [navigate, startTransition]);
 
   /* ─── Cursor-edge motion control ─── */
   const edgeFactor = (v) => {
@@ -773,22 +777,12 @@ export default function GalleryRoomPage({ artworks, loading, onAdd, onUpdate, on
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 2.0 }}
       >
         <CameraRig targetZ={targetZ} targetYaw={targetYaw} targetFOV={zooming ? 36 : 68} />
-        <CeilingLights length={roomLen} />
-        <RoomShell length={roomLen} />
-
-        {leftWall.map((art, i) => {
-          const si = (i * 2) % STYLES.length;
-          const v  = VARIATION[i % VARIATION.length];
-          const z  = -(i * GAP + GAP);
-          return <Frame key={art.id} artwork={art} position={[-HW + 0.1, EYE + 0.4 + v.y, z]} rotY={Math.PI / 2} styleIdx={si} scaleMult={v.scale} onSelect={() => handleFrameClick(art, z, 'left')} />;
-        })}
-
-        {rightWall.map((art, i) => {
-          const si = (i * 2 + 3) % STYLES.length;
-          const v  = VARIATION[(i + 3) % VARIATION.length];
-          const z  = -(i * GAP + GAP * 1.5);
-          return <Frame key={art.id} artwork={art} position={[HW - 0.1, EYE + 0.4 + v.y, z]} rotY={-Math.PI / 2} styleIdx={si} scaleMult={v.scale} onSelect={() => handleFrameClick(art, z, 'right')} />;
-        })}
+        <StaticScene
+          leftWall={leftWall}
+          rightWall={rightWall}
+          roomLen={roomLen}
+          onFrameClick={handleFrameClick}
+        />
       </Canvas>
 
       {/* Site nav — sticky over the canvas with solid white block */}
