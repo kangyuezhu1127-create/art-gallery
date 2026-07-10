@@ -310,6 +310,7 @@ function Frame({ artwork, position, rotY, onSelect, styleIdx, scaleMult = 1 }) {
   const artFw = fw * (s.artScale ?? 1);
   const artFh = fh * (s.artScale ?? 1);
 
+  const halfW = (fw + b) / 2;
   const halfH = (fh + b) / 2;
 
   return (
