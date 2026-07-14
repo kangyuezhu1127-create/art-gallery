@@ -61,7 +61,7 @@ export default function FloatingCollageHero({ lang = 'en', copy }) {
       // backdrop drifts slowly in the opposite-ish direction for depth
       if (bgRef.current) {
         bgRef.current.style.transform =
-          `scale(1.06) translate3d(${cur.current.x * 14}px, ${cur.current.y * 10}px, 0)`;
+          `scale(1.25) translate3d(${cur.current.x * 14}px, ${cur.current.y * 10}px, 0)`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -86,7 +86,8 @@ export default function FloatingCollageHero({ lang = 'en', copy }) {
           style={{
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
-            objectFit: 'cover', objectPosition: 'center top',
+            objectFit: 'cover', objectPosition: 'center 78%',
+            transformOrigin: 'center 78%',
             mixBlendMode: 'multiply',
           }}
         />

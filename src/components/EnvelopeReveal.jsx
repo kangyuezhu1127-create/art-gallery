@@ -212,7 +212,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                       letterSpacing: '0.08em',
                     }}
                   >
-                    jjdy
+                    Judyii
                   </p>
                 </div>
               </div>
