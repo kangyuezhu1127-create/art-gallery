@@ -26,10 +26,9 @@ const IMG = {
 // x,y in %; size in vw; rot in deg; depth = parallax strength (0..1)
 // pink-city is the full-bleed backdrop; fan + tree float on top of it.
 const FRAGMENTS = [
-  { img: IMG.tree, x: 3,  y: 8,  size: 22, rot: -5, depth: 0.9, z: 4 },
   { img: IMG.fan,  x: 55, y: 52, size: 32, rot: -3, depth: 1.0, z: 5 },
-  { img: IMG.tree, x: 80, y: 44, size: 13, rot: 10, depth: 0.6, z: 3 },
-  { img: IMG.fan,  x: 30, y: 16, size: 15, rot: 8,  depth: 0.45, z: 2 },
+  { img: IMG.tree, x: 80, y: 42, size: 15, rot: 8,  depth: 0.6, z: 3 },
+  { img: IMG.fan,  x: 32, y: 12, size: 16, rot: 6,  depth: 0.45, z: 2 },
 ];
 
 export default function FloatingCollageHero({ lang = 'en', copy }) {
