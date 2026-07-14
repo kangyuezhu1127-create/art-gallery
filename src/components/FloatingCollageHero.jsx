@@ -151,26 +151,6 @@ export default function FloatingCollageHero({ lang = 'en', copy }) {
       {/* ── Headline overlay ── */}
       <div className="relative z-20 h-full flex flex-col justify-center px-[6vw] pointer-events-none">
         <div className="max-w-[1100px] pointer-events-auto">
-          {/* vermilion seal + eyebrow */}
-          <div className="flex items-center gap-3 mb-5">
-            <span
-              className="inline-flex items-center justify-center text-white font-cn"
-              style={{
-                width: 34, height: 34, borderRadius: 6, background: '#c1352e',
-                fontSize: 13, fontWeight: 700, letterSpacing: '0.05em',
-                boxShadow: '0 2px 8px rgba(193,53,46,0.35)',
-              }}
-            >
-              揭
-            </span>
-            <p
-              className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} tracking-[0.2em]`}
-              style={{ fontSize: 'clamp(0.85rem, 1.3vw, 1.05rem)', color: '#6b5636', fontWeight: 600 }}
-            >
-              {copy.eyebrow}
-            </p>
-          </div>
-
           <h1
             className={`${lang === 'zh' ? 'font-cn' : 'font-editorial'} leading-[0.92] mb-6`}
             style={{
