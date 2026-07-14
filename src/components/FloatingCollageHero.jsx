@@ -24,17 +24,17 @@ const IMG = {
 };
 
 // x,y in %; size in vw; rot in deg; depth = parallax strength (0..1)
+// pink-city is the full-bleed backdrop; fan + tree float on top of it.
 const FRAGMENTS = [
-  { img: IMG.tree, x: 6,  y: 10, size: 20, rot: -5, depth: 0.9, z: 4 },
-  { img: IMG.city, x: 70, y: 6,  size: 17, rot: 6,  depth: 0.7, z: 3 },
-  { img: IMG.fan,  x: 58, y: 54, size: 30, rot: -3, depth: 1.0, z: 5 },
-  { img: IMG.city, x: 12, y: 60, size: 13, rot: -8, depth: 0.5, z: 2 },
-  { img: IMG.tree, x: 82, y: 46, size: 12, rot: 10, depth: 0.6, z: 3 },
-  { img: IMG.fan,  x: 30, y: 20, size: 15, rot: 8,  depth: 0.45, z: 2 },
+  { img: IMG.tree, x: 3,  y: 8,  size: 22, rot: -5, depth: 0.9, z: 4 },
+  { img: IMG.fan,  x: 55, y: 52, size: 32, rot: -3, depth: 1.0, z: 5 },
+  { img: IMG.tree, x: 80, y: 44, size: 13, rot: 10, depth: 0.6, z: 3 },
+  { img: IMG.fan,  x: 30, y: 16, size: 15, rot: 8,  depth: 0.45, z: 2 },
 ];
 
 export default function FloatingCollageHero({ lang = 'en', copy }) {
   const layerRefs = useRef([]);
+  const bgRef  = useRef(null);
   const target = useRef({ x: 0, y: 0 });
   const cur    = useRef({ x: 0, y: 0 });
 
@@ -59,6 +59,11 @@ export default function FloatingCollageHero({ lang = 'en', copy }) {
         const ty = -cur.current.y * d * 22;
         el.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
       });
+      // backdrop drifts slowly in the opposite-ish direction for depth
+      if (bgRef.current) {
+        bgRef.current.style.transform =
+          `scale(1.06) translate3d(${cur.current.x * 14}px, ${cur.current.y * 10}px, 0)`;
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -70,6 +75,33 @@ export default function FloatingCollageHero({ lang = 'en', copy }) {
       className="relative overflow-hidden -mt-20"
       style={{ height: '110vh', background: '#f2ece0' }}
     >
+      {/* ── Pink-city backdrop (底图) — full-bleed, slow parallax ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <img
+          ref={bgRef}
+          src={IMG.city}
+          alt=""
+          draggable={false}
+          onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+          className="will-change-transform"
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center top',
+            mixBlendMode: 'multiply',
+          }}
+        />
+      </div>
+
+      {/* paper wash over the backdrop so the headline stays legible */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(105deg, rgba(242,236,224,0.9) 0%, rgba(242,236,224,0.72) 34%, rgba(242,236,224,0.42) 60%, rgba(242,236,224,0.28) 100%)',
+        }}
+      />
+
       {/* rice-paper grain */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -77,13 +109,8 @@ export default function FloatingCollageHero({ lang = 'en', copy }) {
           backgroundImage:
             'radial-gradient(circle at 1px 1px, rgba(90,70,45,0.05) 1px, transparent 0)',
           backgroundSize: '5px 5px',
-          opacity: 0.7,
+          opacity: 0.5,
         }}
-      />
-      {/* warm vignette so floating pieces feel lit from centre */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(120% 90% at 50% 40%, rgba(255,252,244,0.6) 0%, rgba(242,236,224,0) 55%)' }}
       />
 
       {/* ── Floating collage fragments ── */}
