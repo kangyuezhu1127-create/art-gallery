@@ -32,8 +32,14 @@ function useScrollProgress(ref) {
       const el = ref.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const total = rect.height - window.innerHeight;
-      const scrolled = -rect.top;
+      const vh = window.innerHeight;
+      // Begin the animation EARLY — while the envelope is still sliding
+      // into view (section top ~halfway down the viewport), not only once
+      // it becomes sticky. `start` is how far above the sticky point we
+      // begin scrubbing.
+      const start = vh * 0.5;
+      const total = start + (rect.height - vh);
+      const scrolled = start - rect.top;
       const v = total > 0 ? scrolled / total : 0;
       setP(Math.max(0, Math.min(1, v)));
     };
@@ -75,11 +81,12 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   const sectionRef = useRef(null);
   const progress   = useScrollProgress(sectionRef);
 
-  // Timeline split: flap opens early, letter follows.
-  // Tightened so the full reveal completes within ~50% of the section
-  // scroll — gives mobile users plenty of margin before the next section.
-  const flapOpen   = Math.min(1, Math.max(0, progress / 0.25));        // fully open by 25% scroll
-  const letterRise = Math.max(0, Math.min(1, (progress - 0.10) / 0.40)); // rising 10% → 50%
+  // Timeline split: flap opens first (slowly, with resistance), letter follows.
+  // easeOutCubic decelerates near full open so the "big open" is slower.
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+  const flapRaw    = Math.min(1, Math.max(0, progress / 0.62));          // spread over more scroll
+  const flapOpen   = easeOut(flapRaw);
+  const letterRise = Math.max(0, Math.min(1, (progress - 0.42) / 0.5));  // letter rises 42% → 92%
 
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
@@ -96,7 +103,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
     <section
       ref={sectionRef}
       className="relative bg-paper"
-      style={{ height: '130vh' }}
+      style={{ height: '190vh' }}
     >
       <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
         {/* Eyebrow */}
@@ -153,7 +160,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   boxShadow:
                     '0 8px 18px -4px rgba(0,0,0,0.14), 0 2px 4px rgba(0,0,0,0.06)',
                   transform: `translateY(${letterY}%)`,
-                  transition: 'transform 0.05s linear',
+                  transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
                   padding: 'clamp(0.8rem, 1.6vw, 1.3rem)',
                   paddingBottom: 'clamp(0.6rem, 1.2vw, 1rem)',
                   display: 'flex',
@@ -247,7 +254,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                 height: `${FLAP_HEIGHT}%`,
                 transformOrigin: 'top center',
                 transform: `rotateX(${flapAngle}deg)`,
-                transition: 'transform 0.05s linear',
+                transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
                 transformStyle: 'preserve-3d',
                 zIndex: 5,
               }}
