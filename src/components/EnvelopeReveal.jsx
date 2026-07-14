@@ -84,18 +84,19 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   // Timeline split: flap opens first (slowly, with resistance), letter follows.
   // easeOutCubic decelerates near full open so the "big open" is slower.
   const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-  const flapRaw    = Math.min(1, Math.max(0, progress / 0.62));          // spread over more scroll
+  // envelope slides in SEALED (heart clasp visible) for the first ~14%,
+  // then the flap opens slowly (eased), then the letter rises.
+  const flapRaw    = Math.min(1, Math.max(0, (progress - 0.14) / 0.5));   // opens 14% → 64%
   const flapOpen   = easeOut(flapRaw);
-  const letterRise = Math.max(0, Math.min(1, (progress - 0.42) / 0.5));  // letter rises 42% → 92%
+  const letterRise = Math.max(0, Math.min(1, (progress - 0.40) / 0.52));  // letter rises 40% → 92%
 
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
 
-  // Letter Y range tuned so even at full rise the bottom of the card
-  // (signature region) sits in the WIDE upper part of the V notch, where
-  // V width >= card width — preventing side clipping on mobile where
-  // the envelope is narrower.
-  const letterY = 130 - letterRise * 220;
+  // Letter Y range: starts only slightly lowered so the paper is already
+  // visible tucked inside the envelope from the very start (no "empty
+  // envelope" moment), then rises fully out as letterRise → 1.
+  const letterY = 18 - letterRise * 165;
 
   const isEn = lang === 'en';
 
@@ -153,8 +154,8 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   position: 'absolute',
                   left: '12%',
                   right: '12%',
-                  top: '8%',
-                  bottom: '28%',
+                  top: '2%',
+                  bottom: '14%',
                   background: COLOR.card,
                   borderRadius: '3px',
                   boxShadow:
@@ -283,6 +284,29 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   backfaceVisibility: 'hidden',
                 }}
               />
+
+              {/* Pink heart wax-seal clasped at the flap point (closure) */}
+              <div
+                className="absolute left-1/2"
+                style={{
+                  bottom: 0,
+                  transform: 'translate(-50%, 45%)',
+                  width: 'clamp(26px, 5vw, 38px)',
+                  filter: 'drop-shadow(0 3px 5px rgba(150,60,80,0.35))',
+                  zIndex: 2,
+                }}
+              >
+                <svg viewBox="0 0 32 30" width="100%" height="100%" aria-hidden="true">
+                  <path
+                    d="M16 28C16 28 2 19.5 2 10.2 2 5.4 5.7 2 9.9 2c2.7 0 5 1.5 6.1 3.7C17.1 3.5 19.4 2 22.1 2 26.3 2 30 5.4 30 10.2 30 19.5 16 28 16 28Z"
+                    fill="#e58aa0"
+                    stroke="#d06e88"
+                    strokeWidth="1.4"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M11 9.5c1.4-1.6 3.4-1.4 4.6.2" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
