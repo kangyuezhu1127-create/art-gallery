@@ -160,8 +160,9 @@ export default function EnvelopeReveal({ lang = 'en' }) {
                   borderRadius: '3px',
                   boxShadow:
                     '0 8px 18px -4px rgba(0,0,0,0.14), 0 2px 4px rgba(0,0,0,0.06)',
-                  transform: `translateY(${letterY}%)`,
-                  transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                  transform: `translateY(${letterY}%) translateZ(0)`,
+                  transition: 'transform 0.12s ease-out',
+                  willChange: 'transform',
                   padding: 'clamp(0.8rem, 1.6vw, 1.3rem)',
                   paddingBottom: 'clamp(0.6rem, 1.2vw, 1rem)',
                   display: 'flex',
@@ -254,9 +255,10 @@ export default function EnvelopeReveal({ lang = 'en' }) {
               style={{
                 height: `${FLAP_HEIGHT}%`,
                 transformOrigin: 'top center',
-                transform: `rotateX(${flapAngle}deg)`,
-                transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                transform: `rotateX(${flapAngle}deg) translateZ(0)`,
+                transition: 'transform 0.12s ease-out',
                 transformStyle: 'preserve-3d',
+                willChange: 'transform',
                 zIndex: 5,
               }}
             >
