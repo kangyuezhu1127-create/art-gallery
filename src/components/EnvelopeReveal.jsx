@@ -84,11 +84,11 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   // Timeline split: flap opens first (slowly, with resistance), letter follows.
   // easeOutCubic decelerates near full open so the "big open" is slower.
   const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-  // envelope slides in SEALED (heart clasp visible) for the first ~14%,
-  // then the flap opens slowly (eased), then the letter rises.
-  const flapRaw    = Math.min(1, Math.max(0, (progress - 0.14) / 0.5));   // opens 14% → 64%
+  // envelope slides in SEALED (heart clasp visible) for the first ~34%,
+  // then the flap opens slowly (eased), then the letter rises a little.
+  const flapRaw    = Math.min(1, Math.max(0, (progress - 0.34) / 0.42));  // opens 34% → 76%
   const flapOpen   = easeOut(flapRaw);
-  const letterRise = Math.max(0, Math.min(1, (progress - 0.40) / 0.52));  // letter rises 40% → 92%
+  const letterRise = Math.max(0, Math.min(1, (progress - 0.58) / 0.42));  // letter rises 58% → 100%
 
   // Flap rotation: stops at -160° so it stays close to the envelope
   const flapAngle = -160 * flapOpen;
@@ -96,7 +96,7 @@ export default function EnvelopeReveal({ lang = 'en' }) {
   // Letter Y range: starts only slightly lowered so the paper is already
   // visible tucked inside the envelope from the very start (no "empty
   // envelope" moment), then rises fully out as letterRise → 1.
-  const letterY = 18 - letterRise * 165;
+  const letterY = 18 - letterRise * 92;
 
   const isEn = lang === 'en';
 
