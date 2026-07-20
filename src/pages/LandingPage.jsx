@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import FloatingCollageHero from '../components/FloatingCollageHero';
+import PapercutMakerScene from '../components/PapercutMakerScene';
 import SiteNav from '../components/SiteNav';
 import EnvelopeReveal from '../components/EnvelopeReveal';
 
@@ -36,6 +37,9 @@ export default function LandingPage() {
 
       {/* ──────── HERO — floating collage (Chinese-aesthetic) ──────── */}
       <FloatingCollageHero lang={lang} copy={copy} />
+
+      {/* ──────── MAKER SCENE — Song-dynasty woman cutting papercut ──────── */}
+      <PapercutMakerScene lang={lang} />
 
       {/* ──────── ENVELOPE SECTION ──────── */}
       <EnvelopeReveal lang={lang} />
