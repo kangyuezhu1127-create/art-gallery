@@ -18,12 +18,19 @@
  * so they track the woman image at every viewport size.
  */
 
+/*
+ * Interaction design (one connected action, not three props):
+ *   her lowered hand HOLDS the scissors → the blades bite the upper-left
+ *   edge of the phoenix she is cutting → scraps fall exactly from that
+ *   blade-paper contact point (~63%, 60% of stage).
+ */
+const CONTACT = { x: 63, y: 59 };  // blade ↔ paper contact, % of stage
 const SCRAPS = [
-  { left: 60, top: 70, delay: 0,   dur: 3.4 },
-  { left: 66, top: 73, delay: 1.1, dur: 3.8 },
-  { left: 57, top: 75, delay: 2.0, dur: 3.1 },
-  { left: 70, top: 71, delay: 2.7, dur: 4.2 },
-  { left: 63, top: 77, delay: 0.6, dur: 3.6 },
+  { left: CONTACT.x - 2, top: CONTACT.y + 1, delay: 0,   dur: 3.4 },
+  { left: CONTACT.x + 3, top: CONTACT.y + 3, delay: 1.1, dur: 3.8 },
+  { left: CONTACT.x - 4, top: CONTACT.y + 4, delay: 2.0, dur: 3.1 },
+  { left: CONTACT.x + 6, top: CONTACT.y + 2, delay: 2.7, dur: 4.2 },
+  { left: CONTACT.x,     top: CONTACT.y + 5, delay: 0.6, dur: 3.6 },
 ];
 
 export default function PapercutMakerScene({ lang = 'en' }) {
@@ -64,8 +71,10 @@ export default function PapercutMakerScene({ lang = 'en' }) {
 
       {/* ── stage: fixed-aspect box matching woman.png (724 × 1288) ── */}
       <div className="pmk-stage">
-        {/* phoenix papercut — held aloft by her raised hand (behind her arm) */}
+        {/* work-in-progress: the phoenix being cut, at her working hand */}
         <img src="/maker/phoenix.png" alt="" draggable={false} className="pmk-phoenix" />
+        {/* raw uncut sheet corner still attached at the blade contact */}
+        <span className="pmk-rawsheet" aria-hidden="true" />
 
         {/* the maker */}
         <div className="pmk-woman-wrap">
@@ -114,9 +123,9 @@ export default function PapercutMakerScene({ lang = 'en' }) {
         }
         .pmk-stage {
           position: absolute;
-          right: 4vw; bottom: 0;
-          height: 96vh;
-          aspect-ratio: 724 / 1288;
+          right: 2vw; bottom: 0;
+          height: 102vh;
+          aspect-ratio: 712 / 1288;
           z-index: 2;
         }
         .pmk-woman-wrap {
@@ -138,33 +147,46 @@ export default function PapercutMakerScene({ lang = 'en' }) {
           transform-origin: top center;
           z-index: 3;
         }
-        .pmk-lid-l { left: 46.6%; top: 19.9%; width: 3.6%; height: 1.15%; }
-        .pmk-lid-r { left: 52.6%; top: 20.6%; width: 2.8%; height: 0.95%; }
+        .pmk-lid-l { left: 45.7%; top: 19.9%; width: 3.7%; height: 1.15%; }
+        .pmk-lid-r { left: 51.8%; top: 20.6%; width: 2.85%; height: 0.95%; }
         .pmk-lid     { animation: pmkBlink 4.6s ease-in-out infinite; }
         .pmk-lid-r.pmk-lid { animation-delay: 0.04s; }
         .pmk-halflid { animation: pmkHalfLid 11s ease-in-out infinite; opacity: 0.9; }
 
-        /* ── scissors in her lowered hand — flipped so the loops sit at her
-           fingers, blades point down, tassel dangles ── */
+        /* ── scissors HELD in her lowered hand: loops at her fingers
+           (origin 50% 80% = loops), blades rotated down-right so their
+           tips bite the phoenix's upper-left edge at the CONTACT point ── */
         .pmk-scissors {
           position: absolute;
-          left: 50%; top: 37%;
-          width: 30%;
+          left: 54%; top: 43%;
+          width: 22%;
           transform-origin: 50% 80%;   /* pivot = the finger loops */
           animation: pmkSnip 1.6s ease-in-out infinite;
           filter: drop-shadow(0 10px 16px rgba(60,40,20,0.28));
           z-index: 4; user-select: none;
         }
 
-        /* ── phoenix held aloft, behind her raised arm ── */
+        /* ── the phoenix being cut — small work-in-progress at her hand,
+           its upper-left edge under the blades ── */
         .pmk-phoenix {
           position: absolute;
-          left: -40%; top: -4%;
-          width: 62%;
-          transform-origin: 80% 20%;
-          animation: pmkPhoenix 7s ease-in-out infinite;
-          filter: drop-shadow(0 18px 30px rgba(160,30,40,0.25));
-          z-index: 1; user-select: none;
+          left: 58%; top: 56%;
+          width: 33%;
+          transform-origin: 18% 8%;    /* pivots where it is held/cut */
+          animation: pmkPhoenix 5.5s ease-in-out infinite;
+          filter: drop-shadow(0 14px 22px rgba(160,30,40,0.3));
+          z-index: 3; user-select: none;
+        }
+
+        /* raw uncut sheet corner at the contact point, tucked under */
+        .pmk-rawsheet {
+          position: absolute;
+          left: 57%; top: 55.5%;
+          width: 9%; aspect-ratio: 1;
+          background: #c32433;
+          clip-path: polygon(8% 0, 100% 14%, 84% 92%, 0 70%);
+          transform: rotate(14deg);
+          z-index: 2;
         }
 
         /* ── falling red scraps ── */
@@ -191,12 +213,14 @@ export default function PapercutMakerScene({ lang = 'en' }) {
           84%, 100% { transform: scaleY(0); }
         }
         @keyframes pmkSnip {
-          0%, 100% { transform: rotate(168deg); }
-          45%      { transform: rotate(161deg) translateY(2px); }
+          0%, 100% { transform: rotate(150deg); }
+          45%      { transform: rotate(143deg) translateY(1px); }
         }
+        /* the work trembles slightly with each cut, pivoting at the held corner */
         @keyframes pmkPhoenix {
-          0%, 100% { transform: rotate(-2deg) translateY(0); }
-          50%      { transform: rotate(2.4deg) translateY(-10px); }
+          0%, 100% { transform: rotate(-0.8deg); }
+          45%      { transform: rotate(1.2deg) translateY(1px); }
+          60%      { transform: rotate(0.4deg); }
         }
         @keyframes pmkFall {
           0%   { opacity: 0; transform: translateY(0) rotate(0deg); }
