@@ -29,7 +29,7 @@ Unveilthe.Arts turns a flat gallery page into an interactive space:
 ## Local development
 
 ```bash
-git clone https://github.com/jzhu-usc/art-gallery.git
+git clone https://github.com/jzhu-kyy/art-gallery.git
 cd art-gallery
 npm install
 npm run dev
@@ -53,4 +53,4 @@ Actively developed. The 3D room layout and the AI analysis panel are the two fea
 
 ---
 
-Made by [Judy Zhu](https://github.com/jzhu-usc) · USC '30, Applied Math + CS
+Made by [Judy Zhu](https://github.com/jzhu-kyy) · USC '30, Applied Math + CS
